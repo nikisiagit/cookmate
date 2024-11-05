@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "8e424b3a-4ba9-45ab-934d-d825fa19e4ef",
+  "id": "a8b6da3e-1457-4ba2-bfde-668ee84aabda",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "ingredient": {
@@ -28,9 +28,9 @@
           "notNull": true,
           "autoincrement": false
         },
-        "quantity": {
-          "name": "quantity",
-          "type": "integer",
+        "qty": {
+          "name": "qty",
+          "type": "real",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -121,8 +121,8 @@
           "notNull": false,
           "autoincrement": false
         },
-        "stars": {
-          "name": "stars",
+        "ratings": {
+          "name": "ratings",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -159,6 +159,20 @@
         "carbs": {
           "name": "carbs",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "sugar": {
+          "name": "sugar",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "source_url": {
+          "name": "source_url",
+          "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false

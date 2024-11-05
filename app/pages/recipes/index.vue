@@ -1,6 +1,7 @@
 <script setup lang="ts">
-useSeoMeta
-({
+import type { Recipe } from '~~/types/recipes'
+
+useSeoMeta({
   title: 'Recipes - CookMate',
   ogTitle: 'Recipes - CookMate',
   ogType: 'website',
@@ -10,20 +11,19 @@ useSeoMeta
   twitterCard: 'summary_large_image',
 })
 
-const { data: recipes, error, status, refresh } = useLazyFetch('/api/recipes')
+const { data: recipes, error, status, refresh } = useLazyFetch<Recipe[]>('/api/recipes')
 
 const search = ref('')
 
-const filteredRecipes = computed(() => {
+const filteredRecipes = computed<Recipe[]>(() => {
   if (!search.value) {
-    return recipes.value
+    return recipes.value || []
   }
 
-  return recipes.value && recipes.value.filter((recipe) => {
+  return (recipes.value && recipes.value.filter((recipe) => {
     return recipe.name.toLowerCase().includes(search.value.toLowerCase())
-  })
+  })) || []
 })
-const loading = ref(true)
 </script>
 
 <template>
@@ -56,55 +56,16 @@ const loading = ref(true)
             </div>
           </div>
 
-          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            <NuxtLink
+          <!-- ListRecipes.vue -->
+          <div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 items-stretch">
+            <RecipeCard
               v-for="recipe in filteredRecipes"
               :key="recipe.id"
-              :to="`/recipes/${recipe.id}`"
-            >
-              <div
-                class="rounded p-4 shadow dark:bg-neutral-800 transform border border-neutral-100 transition-all hover:shadow-md dark:border-neutral-700"
-              >
-                <div class="flex h-80 flex-col gap-4">
-                  <div class="-m-4 mb-0 h-48">
-                    <NuxtImg
-                      class="h-48 w-full rounded-t object-cover"
-                      :src="recipe.imageUrl || '/recipe-placeholder.png'"
-                      :alt="recipe.name + 'image'"
-                      height="300"
-                      width="400"
-                    />
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <div class="w-full">
-                      <div class="text-xl font-semibold text-primary">
-                        {{ recipe.name }}
-                      </div>
-                      <div class=" dark:text-neutral-200 flex mt-1 items-center">
-                        <!-- {{ recipe.difficulty }} | -->
-                        <UIcon
-                          class="mr-1"
-                          name="i-heroicons-clock"
-                          size="20"
-                        />
-                        {{ `${recipe.hours ? recipe.hours + 'h' : ''} ${recipe.minutes ? recipe.minutes + 'm' : ''}` }}
-                        |
-                        {{ recipe.servings }}
-                        <UIcon
-                          class="ml-1"
-                          name="humbleicons:users"
-                          size="20"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <span class="dark:text-neutral-200 line-clamp-2 text-sm">
-                    {{ recipe.description }}
-                  </span>
-                </div>
-              </div>
-            </NuxtLink>
+              include-link
+              :recipe="recipe"
+            />
           </div>
+          <!-- end ListRecipes.vue -->
         </div>
       </div>
     </main>

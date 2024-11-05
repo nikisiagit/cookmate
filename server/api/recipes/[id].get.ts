@@ -3,7 +3,6 @@ import { useValidatedParams, zh } from 'h3-zod'
 
 export default defineEventHandler(async (event) => {
   try {
-    console.log('Fetching recipe')
     const { id } = await useValidatedParams(event, {
       id: zh.intAsString,
     })
