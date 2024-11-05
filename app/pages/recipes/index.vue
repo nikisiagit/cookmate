@@ -7,7 +7,7 @@ useSeoMeta({
   ogType: 'website',
   description: 'CookMate is a simple app that manage your recipes and plan your meals.',
   ogDescription: 'CookMate is a simple app that manage your recipes and plan your meals.',
-  ogImage: 'https://example.com/image.png',
+  ogImage: '/logo.png',
   twitterCard: 'summary_large_image',
 })
 
