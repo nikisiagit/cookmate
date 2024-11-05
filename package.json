@@ -1,0 +1,44 @@
+{
+  "name": "CookMate",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "npx nuxthub preview",
+    "deploy": "npx nuxthub deploy",
+    "postinstall": "nuxt prepare",
+    "db:generate": "drizzle-kit generate",
+    "lint": "eslint . --fix"
+  },
+  "dependencies": {
+    "@lukeed/uuid": "^2.0.0",
+    "@nuxt/image": "^1.8.1",
+    "@nuxt/ui": "^2.18.7",
+    "@nuxthub/core": "^0.7.29",
+    "@pinia/nuxt": "^0.5.5",
+    "drizzle-kit": "^0.24.2",
+    "drizzle-orm": "0.33.0",
+    "feather-icons": "^4.29.0",
+    "h3-zod": "^0.5.3",
+    "nuxt": "^3.13.2",
+    "nuxt-auth-utils": "^0.5.1",
+    "nuxt-feather-icons": "^1.2.4",
+    "pinia": "^2.2.4",
+    "vue": "latest",
+    "vue-router": "latest",
+    "zod": "^3.23.8",
+    "@nuxt/eslint": "0.5.7",
+    "eslint": "9.12.0"
+  },
+  "devDependencies": {
+    "@vueuse/core": "^11.2.0",
+    "@vueuse/nuxt": "^11.2.0",
+    "vue-tsc": "^2.1.6",
+    "wrangler": "^3.80.4"
+  },
+  "overrides": {
+    "vue": "latest"
+  }
+}

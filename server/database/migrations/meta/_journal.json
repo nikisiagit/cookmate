@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1730204647039,
+      "tag": "0000_youthful_gertrude_yorkes",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1730204730846,
+      "tag": "0001_youthful_tana_nile",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1730289667227,
+      "tag": "0002_rapid_songbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1730393805773,
+      "tag": "0003_daily_micromax",
+      "breakpoints": true
+    }
+  ]
+}
