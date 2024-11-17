@@ -22,6 +22,7 @@ const mealPlanList = useStorage<Recipe[]>('meal-plan-list', [])
 </script>
 
 <template>
+  <VitePwaManifest />
   <NuxtLoadingIndicator
     :throttle="0"
     color="violet"

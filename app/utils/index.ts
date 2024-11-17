@@ -7,7 +7,7 @@ export function recipesDummyData(): Recipe[] {
       name: 'Spicy Sausage Pasta with Garlic Crumb',
       description: 'A spicy sausage pasta with a garlic crumb topping.',
       imageUrl:
-        '/api/images/1174-Red-Pepper--Sausage-Pasta-Garlic-Crumb-x700-9acdfc7d.jpg',
+        'https://pro-cookmate.nuxt.dev/api/images/1174-Red-Pepper--Sausage-Pasta-Garlic-Crumb-x700-9acdfc7d.jpg',
       difficulty: 'Easy',
       hours: 0,
       minutes: 30,
@@ -28,7 +28,7 @@ export function recipesDummyData(): Recipe[] {
       name: 'Creamy Rigatoni with Garlicky Greens and Creme Fraiche',
       description:
         'A creamy pasta dish with a garlicky greens and creme fraiche sauce.',
-      imageUrl: '/api/images/creamy-rigatoni-8ff897c2-d7830756-358d1297.avif',
+      imageUrl: 'https://pro-cookmate.nuxt.dev/api/images/creamy-rigatoni-8ff897c2-d7830756-358d1297.avif',
       difficulty: 'Easy',
       hours: 0,
       minutes: 35,
@@ -50,7 +50,7 @@ export function recipesDummyData(): Recipe[] {
       description:
         'A delicious salad with harissa hummus, roasted veg, and freekeh.',
       imageUrl:
-        '/api/images/1358-Harissa-Hummus-Roasted-Veg--Freekeh-Salad-x700.jpg',
+        'https://pro-cookmate.nuxt.dev/api/images/1358-Harissa-Hummus-Roasted-Veg--Freekeh-Salad-x700.jpg',
       difficulty: 'Easy',
       hours: 0,
       minutes: 30,

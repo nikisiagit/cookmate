@@ -129,8 +129,8 @@ useSeoMeta({
         </div>
       </template>
 
+      <!-- this could be a component randomiser-start.vue --->
       <template v-else-if="!recipes.length && !isLoadingRecipes">
-        <!-- this could be a component randomiser-start.vue --->
         <h1 class="text-center text-2xl font-semibold mt-8">
           Let fortune decide your meals this week
         </h1>
