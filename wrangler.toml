@@ -10,11 +10,10 @@ compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
 
 # D1 Database binding
-# We'll create the database and add the binding here
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "cookmate-db"
-# database_id = "your-d1-database-id"
+[[d1_databases]]
+binding = "DB"
+database_name = "cookmate-db"
+database_id = "e33f9c74-fb35-4fbe-9d26-5bb5f48d3f52"
 
 # R2 Blob Storage binding
 # We'll create the bucket and add the binding here
