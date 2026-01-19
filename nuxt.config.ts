@@ -25,6 +25,15 @@ export default defineNuxtConfig({
     database: true,
     blob: true,
   },
+  nitro: {
+    preset: 'cloudflare_module',
+    cloudflare: {
+      wrangler: {
+        compatibility_date: '2024-11-01',
+        compatibility_flags: ['nodejs_compat'],
+      },
+    },
+  },
   colorMode: {
     preference: 'system', // default value of $colorMode.preference
     fallback: 'light', // fallback value if not system preference found
