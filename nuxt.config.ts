@@ -28,10 +28,8 @@ export default defineNuxtConfig({
   nitro: {
     preset: 'cloudflare_module',
     cloudflare: {
-      wrangler: {
-        compatibility_date: '2024-11-01',
-        compatibility_flags: ['nodejs_compat'],
-      },
+      compatibilityDate: '2024-11-01',
+      compatibilityFlags: ['nodejs_compat'],
     },
   },
   colorMode: {
