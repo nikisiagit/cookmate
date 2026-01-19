@@ -1,46 +1,80 @@
-# NuxtHub Cloudflare Worker Deployment Guide
+# Cloudflare Worker Deployment Guide
 
-Your CookMate app is configured to deploy as a **Cloudflare Worker** using NuxtHub!
+Your CookMate app is configured to deploy as a **Cloudflare Worker**!
 
-## What is NuxtHub?
+## Deployment Options
 
-NuxtHub is the official deployment platform for Nuxt apps on Cloudflare. When you deploy with NuxtHub, your app runs as a **Cloudflare Worker** with:
-- **Edge runtime**: Your app runs on Cloudflare's global network
-- **D1 Database**: Serverless SQL database automatically provisioned
-- **R2 Blob Storage**: Object storage for images and files
-- **Zero configuration**: Everything is set up automatically
+Since NuxtHub Admin has been sunset, you have two main options:
 
-## Deploy as Cloudflare Worker (Recommended)
+### Option 1: Cloudflare Pages (Recommended - Currently Working)
 
-### Step 1: Login to NuxtHub
+This is the **easiest** option since you already have it working!
 
-First time only, authenticate with Cloudflare:
+**How it works**: Cloudflare Pages runs on Workers under the hood, so you're already using Workers.
+
+**Setup**:
+1. Your repo is connected to Cloudflare Pages
+2. Every push to your branch triggers an automatic deployment
+3. Your app runs as a Worker on the edge
+
+**Benefits**:
+- Already working for you
+- Automatic deployments on Git push
+- No manual deployment needed
+- Same Worker performance
+
+**Dashboard**: [https://dash.cloudflare.com](https://dash.cloudflare.com) → Pages
+
+---
+
+### Option 2: Direct Worker Deployment with Wrangler
+
+Deploy manually using Cloudflare's CLI tool.
+
+#### Step 1: Set up Cloudflare API Token
+
+You mentioned you created a token - let's configure it:
+
 ```bash
-npx nuxthub login
+# Set your Cloudflare API token
+export CLOUDFLARE_API_TOKEN="your-token-here"
+
+# Or add to your shell config (~/.bashrc or ~/.zshrc):
+echo 'export CLOUDFLARE_API_TOKEN="your-token-here"' >> ~/.bashrc
 ```
 
-This will open your browser and connect to your Cloudflare account.
+Your token needs these permissions:
+- **Account** → Workers Scripts → Edit
+- **Account** → D1 → Edit
+- **Account** → R2 → Edit
 
-### Step 2: Deploy
+#### Step 2: Update wrangler.toml
 
-Deploy your app as a Cloudflare Worker:
+You'll need to configure your account ID and Worker name (I'll help with this next).
+
+#### Step 3: Deploy
+
 ```bash
+npx wrangler deploy
+```
+
+This deploys your app directly as a Worker.
+
+---
+
+### Option 3: NuxtHub CLI with Token
+
+The NuxtHub CLI still works with your Cloudflare token:
+
+```bash
+# Authenticate with your token
+export CLOUDFLARE_API_TOKEN="your-token-here"
+
+# Deploy
 npm run deploy
 ```
 
-This command will:
-1. Build your Nuxt app for Cloudflare Workers
-2. Create/update your Worker on Cloudflare
-3. Provision D1 database (if not exists)
-4. Provision R2 storage (if not exists)
-5. Deploy your code to the edge
-6. Provide you with a live URL
-
-### Step 3: Manage Your Deployment
-
-Access your deployment dashboard at:
-- **NuxtHub Admin**: [https://admin.hub.nuxt.com](https://admin.hub.nuxt.com)
-- **Cloudflare Dashboard**: [https://dash.cloudflare.com](https://dash.cloudflare.com)
+Note: NuxtHub Admin dashboard is no longer available, but the CLI deployment still functions.
 
 ## Local Development with Workers
 
@@ -85,11 +119,11 @@ export default defineNuxtConfig({
 
 ## Environment Variables
 
-Set environment variables via NuxtHub Admin:
-1. Go to [admin.hub.nuxt.com](https://admin.hub.nuxt.com)
-2. Select your project
-3. Navigate to **Settings** → **Environment Variables**
-4. Add your variables
+Set environment variables in Cloudflare Dashboard:
+1. Go to [dash.cloudflare.com](https://dash.cloudflare.com)
+2. Navigate to **Workers & Pages** → Your project
+3. Go to **Settings** → **Environment Variables**
+4. Add your variables for production/preview environments
 
 ## Database Migrations
 
