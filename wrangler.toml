@@ -16,10 +16,9 @@ database_name = "cookmate-db"
 database_id = "e33f9c74-fb35-4fbe-9d26-5bb5f48d3f52"
 
 # R2 Blob Storage binding
-# We'll create the bucket and add the binding here
-# [[r2_buckets]]
-# binding = "BLOB"
-# bucket_name = "cookmate-storage"
+[[r2_buckets]]
+binding = "BLOB"
+bucket_name = "cookmate-storage"
 
 # For Cloudflare Pages deployment (alternative)
 # pages_build_output_dir = "dist"
