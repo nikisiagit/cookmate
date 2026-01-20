@@ -19,12 +19,55 @@ watchEffect(async () => {
     ogDescription: recipe.value?.description,
     ogImage: recipe.value?.imageUrl,
   })
+
+  // Load rating statistics
+  await loadRatingStats()
 })
 
 const ratings = ref(0)
+const ratingStats = ref({ averageRating: 0, totalRatings: 0 })
+const isSubmittingRating = ref(false)
 
-function updateRating(value: number) {
+async function loadRatingStats() {
+  try {
+    const stats = await $fetch(`/api/recipes/${route.params.id}/ratings`)
+    ratingStats.value = stats
+  } catch (error) {
+    console.error('Error loading rating statistics:', error)
+  }
+}
+
+async function updateRating(value: number) {
   ratings.value = value
+  isSubmittingRating.value = true
+
+  try {
+    await $fetch(`/api/recipes/${route.params.id}/ratings`, {
+      method: 'POST',
+      body: { rating: value }
+    })
+
+    // Reload rating statistics
+    await loadRatingStats()
+
+    // Show success message
+    const toast = useToast()
+    toast.add({
+      title: 'Rating submitted!',
+      description: 'Thank you for rating this recipe.',
+      color: 'green'
+    })
+  } catch (error) {
+    console.error('Error submitting rating:', error)
+    const toast = useToast()
+    toast.add({
+      title: 'Error',
+      description: 'Failed to submit rating. Please try again.',
+      color: 'red'
+    })
+  } finally {
+    isSubmittingRating.value = false
+  }
 }
 
 const formattedDescription = computed(() => {
@@ -94,10 +137,19 @@ function convertToRecipeFraction(value: number): string {
             <div class="w-full grid grid-cols-1 sm:grid-cols-2 sm:grid-rows-1 lg:gap-16">
               <div class="col-start-1 row-start-1 flex items-center">
                 <div>
-                  <div class="flex justify-between items-center w-full">
-                    <h1 class="text-3xl md:text-5xl leading-tight font-bold text-primary w-full lg:w-2/3">
+                  <div class="flex justify-between items-start w-full gap-4">
+                    <h1 class="text-3xl md:text-5xl leading-tight font-bold text-primary flex-1">
                       {{ recipe.name }}
                     </h1>
+                    <UButton
+                      :to="`/recipes/${recipe.id}/cook`"
+                      icon="i-heroicons-fire"
+                      size="lg"
+                      color="primary"
+                      class="flex-shrink-0"
+                    >
+                      Cook Mode
+                    </UButton>
                   </div>
 
                   <p class="recipe-description text-lg md:text-lg lg:text-lg leading-normal my-4 sm:mb-6">
@@ -158,12 +210,12 @@ function convertToRecipeFraction(value: number): string {
                         /> Vegetarian
                       </template>
 
-                      <template v-if="recipe.diet === 'flexitarian'">
+                      <template v-if="recipe.diet === 'pescatarian'">
                         <UIcon
                           class="mr-2"
                           name="icon-park-outline:eggplant"
                           size="26"
-                        /> Flexitarian
+                        /> Pescatarian
                       </template>
                     </div>
                   </div>
@@ -331,12 +383,23 @@ function convertToRecipeFraction(value: number): string {
             </div>
 
             <div class="mt-4 text-center">
+              <div v-if="ratingStats.totalRatings > 0" class="mb-4">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">
+                  {{ ratingStats.averageRating.toFixed(1) }} / 5
+                </div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">
+                  Based on {{ ratingStats.totalRatings }} {{ ratingStats.totalRatings === 1 ? 'rating' : 'ratings' }}
+                </div>
+              </div>
               <StarRating
                 v-model="ratings"
                 :max-stars="5"
+                :disabled="isSubmittingRating"
                 @rating-data="updateRating"
               />
-              <p>Rate this recipe</p>
+              <p class="mt-2 text-gray-600 dark:text-gray-400">
+                {{ ratingStats.totalRatings === 0 ? 'Be the first to rate this recipe' : 'Rate this recipe' }}
+              </p>
             </div>
           </div>
         </div>

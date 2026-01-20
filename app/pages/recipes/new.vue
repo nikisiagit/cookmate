@@ -182,8 +182,8 @@ const dietOptions = [
     value: 'vegan',
   },
   {
-    label: 'Flexitarian',
-    value: 'flexitarian',
+    label: 'Pescatarian',
+    value: 'pescatarian',
   },
 ]
 
@@ -195,7 +195,7 @@ const dietIcon = computed(() => {
       return 'hugeicons:vegetarian-food'
     case 'vegan':
       return 'lucide:vegan'
-    case 'flexitarian':
+    case 'pescatarian':
       return 'icon-park-outline:eggplant'
   }
 })
@@ -499,10 +499,10 @@ const { loggedIn } = useUserSession()
                         class="text-sm sm:text-base w-full rounded border-neutral-100 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-700 dark:text-neutral-100"
                         name="calories"
                         placeholder="Calories"
-                        min="1"
+                        min="0"
+                        step="0.1"
                         icon="lets-icons:calories"
-                        pattern="[0-9]*"
-                        inputmode="numeric"
+                        inputmode="decimal"
                       />
                     </div>
 
@@ -519,10 +519,10 @@ const { loggedIn } = useUserSession()
                         class="text-sm sm:text-base w-full rounded border-neutral-100 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-700 dark:text-neutral-100"
                         name="fat"
                         placeholder="Fat"
-                        min="1"
+                        min="0"
+                        step="0.1"
                         icon="lets-icons:fat"
-                        pattern="[0-9]*"
-                        inputmode="numeric"
+                        inputmode="decimal"
                       />
                     </div>
                   </div>
@@ -541,10 +541,10 @@ const { loggedIn } = useUserSession()
                         class="text-sm sm:text-base w-full rounded border-neutral-100 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-700 dark:text-neutral-100"
                         name="protein"
                         placeholder="Protein"
-                        min="1"
+                        min="0"
+                        step="0.1"
                         icon="lets-icons:protein"
-                        pattern="[0-9]*"
-                        inputmode="numeric"
+                        inputmode="decimal"
                       />
                     </div>
 
@@ -561,10 +561,10 @@ const { loggedIn } = useUserSession()
                         class="text-sm sm:text-base w-full rounded border-neutral-100 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-700 dark:text-neutral-100"
                         name="carbs"
                         placeholder="Carbs"
-                        min="1"
+                        min="0"
+                        step="0.1"
                         icon="lets-icons:carbs"
-                        pattern="[0-9]*"
-                        inputmode="numeric"
+                        inputmode="decimal"
                       />
                     </div>
                   </div>
@@ -710,7 +710,7 @@ const { loggedIn } = useUserSession()
                     <UTextarea
                       v-model="step.description"
                       placeholder="Step"
-                      :rows="1"
+                      :rows="3"
                       :name="`steps.${index}.description`"
                       resize
                     />

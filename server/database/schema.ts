@@ -37,3 +37,12 @@ export const step = sqliteTable('step', {
     .notNull(),
   description: text('description').notNull(),
 })
+
+export const rating = sqliteTable('rating', {
+  id: integer('id').primaryKey(),
+  recipeId: integer('recipe_id')
+    .references(() => recipe.id)
+    .notNull(),
+  rating: integer('rating').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+})

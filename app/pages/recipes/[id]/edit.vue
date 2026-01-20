@@ -201,8 +201,8 @@ const dietOptions = [
     value: 'vegan',
   },
   {
-    label: 'Flexitarian',
-    value: 'flexitarian',
+    label: 'Pescatarian',
+    value: 'pescatarian',
   },
 ]
 
@@ -504,8 +504,10 @@ const isOpen = ref(false)
                         class="text-sm sm:text-base w-full"
                         name="calories"
                         placeholder="Calories"
-                        min="1"
+                        min="0"
+                        step="0.1"
                         icon="lets-icons:calories"
+                        inputmode="decimal"
                       />
                     </div>
 
@@ -522,8 +524,10 @@ const isOpen = ref(false)
                         class="text-sm sm:text-base w-full"
                         name="fat"
                         placeholder="Fat"
-                        min="1"
+                        min="0"
+                        step="0.1"
                         icon="lets-icons:fat"
+                        inputmode="decimal"
                       />
                     </div>
                   </div>
@@ -542,8 +546,10 @@ const isOpen = ref(false)
                         class="text-sm sm:text-base w-full"
                         name="protein"
                         placeholder="Protein"
-                        min="1"
+                        min="0"
+                        step="0.1"
                         icon="lets-icons:protein"
+                        inputmode="decimal"
                       />
                     </div>
 
@@ -560,8 +566,10 @@ const isOpen = ref(false)
                         class="text-sm sm:text-base w-full"
                         name="carbs"
                         placeholder="Carbs"
-                        min="1"
+                        min="0"
+                        step="0.1"
                         icon="lets-icons:carbs"
+                        inputmode="decimal"
                       />
                     </div>
                   </div>
@@ -707,7 +715,7 @@ const isOpen = ref(false)
                     <UTextarea
                       v-model="step.description"
                       placeholder="Step"
-                      :rows="1"
+                      :rows="3"
                       :name="`steps.${index}.description`"
                       resize
                     />
