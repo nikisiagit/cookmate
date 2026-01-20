@@ -1,21 +1,24 @@
 # Cloudflare Pages Configuration for CookMate
 name = "cookmate"
-account_id = "7cd05ae6e3cf8bc7d1e8294fa52a6b46"
-
-# Pages build output directory
-pages_build_output_dir = "dist"
 
 # Compatibility settings
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
 
-# D1 Database binding
-[[d1_databases]]
-binding = "DB"
-database_name = "cookmate-db"
-database_id = "e33f9c74-fb35-4fbe-9d26-5bb5f48d3f52"
+# Production environment bindings
+[env.production]
+d1_databases = [
+  { binding = "DB", database_name = "cookmate-db", database_id = "e33f9c74-fb35-4fbe-9d26-5bb5f48d3f52" }
+]
+r2_buckets = [
+  { binding = "BLOB", bucket_name = "cookmate-storage" }
+]
 
-# R2 Blob Storage binding
-[[r2_buckets]]
-binding = "BLOB"
-bucket_name = "cookmate-storage"
+# Preview environment bindings (use same database for now)
+[env.preview]
+d1_databases = [
+  { binding = "DB", database_name = "cookmate-db", database_id = "e33f9c74-fb35-4fbe-9d26-5bb5f48d3f52" }
+]
+r2_buckets = [
+  { binding = "BLOB", bucket_name = "cookmate-storage" }
+]
