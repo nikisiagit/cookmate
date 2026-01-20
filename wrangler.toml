@@ -5,20 +5,13 @@ name = "cookmate"
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Production environment bindings
-[env.production]
-d1_databases = [
-  { binding = "DB", database_name = "cookmate-db", database_id = "e33f9c74-fb35-4fbe-9d26-5bb5f48d3f52" }
-]
-r2_buckets = [
-  { binding = "BLOB", bucket_name = "cookmate-storage" }
-]
+# D1 Database binding (applies to all environments)
+[[d1_databases]]
+binding = "DB"
+database_name = "cookmate-db"
+database_id = "e33f9c74-fb35-4fbe-9d26-5bb5f48d3f52"
 
-# Preview environment bindings (use same database for now)
-[env.preview]
-d1_databases = [
-  { binding = "DB", database_name = "cookmate-db", database_id = "e33f9c74-fb35-4fbe-9d26-5bb5f48d3f52" }
-]
-r2_buckets = [
-  { binding = "BLOB", bucket_name = "cookmate-storage" }
-]
+# R2 Blob Storage binding (applies to all environments)
+[[r2_buckets]]
+binding = "BLOB"
+bucket_name = "cookmate-storage"
