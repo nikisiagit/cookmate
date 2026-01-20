@@ -26,13 +26,10 @@ export default defineNuxtConfig({
     blob: true,
   },
   nitro: {
-    preset: 'cloudflare_module',
+    preset: 'cloudflare-pages',
     cloudflare: {
       compatibilityDate: '2024-11-01',
       compatibilityFlags: ['nodejs_compat'],
-    },
-    experimental: {
-      wasm: true,
     },
     rollupConfig: {
       external: ['node:readline', 'node:tty'],
