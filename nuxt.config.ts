@@ -31,6 +31,12 @@ export default defineNuxtConfig({
       compatibilityDate: '2024-11-01',
       compatibilityFlags: ['nodejs_compat'],
     },
+    experimental: {
+      wasm: true,
+    },
+    rollupConfig: {
+      external: ['node:readline', 'node:tty'],
+    },
   },
   colorMode: {
     preference: 'system', // default value of $colorMode.preference
