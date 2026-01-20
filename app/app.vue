@@ -19,6 +19,19 @@ async function clearSession() {
 }
 
 const mealPlanList = useStorage<Recipe[]>('meal-plan-list', [])
+
+// Animation for pot icon on first load
+const isAnimating = ref(false)
+
+onMounted(() => {
+  // Trigger animation on mount
+  isAnimating.value = true
+
+  // Stop animation after 2 seconds
+  setTimeout(() => {
+    isAnimating.value = false
+  }, 2000)
+})
 </script>
 
 <template>
@@ -42,6 +55,7 @@ const mealPlanList = useStorage<Recipe[]>('meal-plan-list', [])
               <UIcon
                 name="noto:pot-of-food"
                 size="28"
+                :class="{ 'cooking-animation': isAnimating }"
               />
               <span class="truncate">
                 cookmate
@@ -127,3 +141,25 @@ const mealPlanList = useStorage<Recipe[]>('meal-plan-list', [])
     </ClientOnly>
   </div>
 </template>
+
+<style scoped>
+.cooking-animation {
+  animation: cooking 0.5s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+@keyframes cooking {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-3px) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-3px) rotate(2deg);
+  }
+}
+</style>
