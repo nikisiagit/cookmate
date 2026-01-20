@@ -36,15 +36,15 @@ const mealPlanList = useStorage<Recipe[]>('meal-plan-list', [])
         <div class="lg:flex-1 flex items-center gap-1.5 min-w-0">
           <div class="font-bold text-xl min-w-0">
             <NuxtLink
-              class="flex items-center "
+              class="flex items-center gap-2"
               to="/"
             >
-              <NuxtImg
-                width="30"
-                src="/logo.png"
+              <UIcon
+                name="noto:pot-of-food"
+                size="28"
               />
-              <span class="ml-2 truncate">
-                Cookmate
+              <span class="truncate">
+                cookmate
               </span>
             </NuxtLink>
           </div>
