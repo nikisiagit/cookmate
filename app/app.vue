@@ -64,9 +64,9 @@ const mealPlanList = useStorage<Recipe[]>('meal-plan-list', [])
               icon="streamline:food-kitchenware-chef-toque-hat-cook-gear-chef-cooking-nutrition-tools-clothes-hat-clothing-food"
               color="primary"
               variant="ghost"
-              aria-label="Add Recipe"
+              aria-label="Admin"
               class="ml-2"
-              to="/recipes/new"
+              to="/admin/recipes"
             />
             <UButton
               v-if="loggedIn"
