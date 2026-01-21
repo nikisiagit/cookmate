@@ -55,31 +55,50 @@ function scaleRecipeIngredients(recipe: Recipe, targetServings: number): Recipe 
 
   const scale = targetServings / recipe.servings
 
+  console.log('=== SCALING RECIPE ===')
+  console.log('Recipe name:', recipe.name)
+  console.log('Original servings:', recipe.servings)
+  console.log('Target servings:', targetServings)
+  console.log('Scale factor:', scale)
+
   return {
     ...recipe,
     servings: targetServings,
-    ingredients: recipe.ingredients.map(ingredient => ({
-      ...ingredient,
-      qty: Number((ingredient.qty * scale).toFixed(2))
-    }))
+    ingredients: recipe.ingredients.map(ingredient => {
+      const originalQty = ingredient.qty
+      const scaledQty = Number((ingredient.qty * scale).toFixed(2))
+      console.log(`  ${ingredient.name}: ${originalQty} → ${scaledQty} ${ingredient.unit}`)
+      return {
+        ...ingredient,
+        qty: scaledQty
+      }
+    })
   }
 }
 
 // Generate shopping list from meal plan
 const shoppingList = computed(() => {
+  console.log('=== GENERATING SHOPPING LIST ===')
+  console.log('Current randomiser servingSize:', servingSize.value)
+  console.log('Meal plan items:', mealPlanList.value.length)
+
   if (!mealPlanList.value.length) return []
 
   const ingredientMap = new Map<string, { name: string, qty: number, unit: string }>()
 
   // Use the current randomiser serving size for ALL recipes
-  mealPlanList.value.forEach(mealPlanItem => {
+  mealPlanList.value.forEach((mealPlanItem, index) => {
+    console.log(`\nProcessing recipe ${index + 1}:`, mealPlanItem.recipe.name)
+    console.log('  Stored customServings:', mealPlanItem.customServings)
     const scaledRecipe = scaleRecipeIngredients(mealPlanItem.recipe, servingSize.value)
     scaledRecipe.ingredients.forEach(ingredient => {
       const key = `${ingredient.name.toLowerCase()}-${ingredient.unit}`
       if (ingredientMap.has(key)) {
         const existing = ingredientMap.get(key)!
+        console.log(`  Adding to existing ${ingredient.name}: ${existing.qty} + ${ingredient.qty}`)
         existing.qty += ingredient.qty
       } else {
+        console.log(`  New ingredient ${ingredient.name}: ${ingredient.qty} ${ingredient.unit}`)
         ingredientMap.set(key, {
           name: ingredient.name,
           qty: ingredient.qty,
@@ -89,10 +108,18 @@ const shoppingList = computed(() => {
     })
   })
 
-  return Array.from(ingredientMap.values()).map(item => ({
+  const result = Array.from(ingredientMap.values()).map(item => ({
     ...item,
     qty: Number(item.qty.toFixed(2))
   }))
+
+  console.log('=== FINAL SHOPPING LIST ===')
+  console.log('Total unique ingredients:', result.length)
+  result.forEach(item => {
+    console.log(`  ${item.name}: ${item.qty} ${item.unit}`)
+  })
+
+  return result
 })
 
 async function fetchRandomRecipes(limit: number, excludedIds: number[] = []): Promise<Recipe[]> {
