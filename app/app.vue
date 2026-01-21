@@ -30,6 +30,18 @@ const mealPlanList = useStorage<MealPlanItem[]>('meal-plan-list', [])
 const isAnimating = ref(false)
 
 onMounted(() => {
+  // Migrate old format to new format (one-time migration)
+  if (mealPlanList.value.length > 0) {
+    const firstItem = mealPlanList.value[0]
+    if (firstItem && !('recipe' in firstItem) && 'id' in firstItem) {
+      const oldData = mealPlanList.value as unknown as Recipe[]
+      mealPlanList.value = oldData.map((recipe: Recipe) => ({
+        recipe,
+        customServings: recipe.servings || 2
+      }))
+    }
+  }
+
   // Trigger animation on mount
   isAnimating.value = true
 

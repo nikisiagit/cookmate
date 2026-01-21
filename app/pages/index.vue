@@ -15,6 +15,22 @@ interface MealPlanItem {
 }
 const mealPlanList = useStorage<MealPlanItem[]>('meal-plan-list', [])
 
+// Migrate old format to new format (one-time migration)
+onMounted(() => {
+  if (mealPlanList.value.length > 0) {
+    // Check if we have old format (recipes directly instead of MealPlanItem)
+    const firstItem = mealPlanList.value[0]
+    if (firstItem && !('recipe' in firstItem) && 'id' in firstItem) {
+      // Old format detected, migrate to new format
+      const oldData = mealPlanList.value as unknown as Recipe[]
+      mealPlanList.value = oldData.map(recipe => ({
+        recipe,
+        customServings: recipe.servings || 2
+      }))
+    }
+  }
+})
+
 // Track saved recipe IDs
 const savedRecipes = ref<number[]>([])
 // Excluded recipe IDs

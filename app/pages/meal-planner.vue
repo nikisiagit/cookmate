@@ -11,6 +11,20 @@ interface MealPlanItem {
 // get localStorage
 const mealPlanList = useStorage<MealPlanItem[]>('meal-plan-list', [])
 
+// Migrate old format to new format (one-time migration)
+onMounted(() => {
+  if (mealPlanList.value.length > 0) {
+    const firstItem = mealPlanList.value[0]
+    if (firstItem && !('recipe' in firstItem) && 'id' in firstItem) {
+      const oldData = mealPlanList.value as unknown as Recipe[]
+      mealPlanList.value = oldData.map(recipe => ({
+        recipe,
+        customServings: recipe.servings || 2
+      }))
+    }
+  }
+})
+
 useSeoMeta({
   title: 'Meal Planner - CookMate',
   ogTitle: 'Meal Planner - CookMate',
