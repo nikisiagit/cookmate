@@ -28,6 +28,14 @@ const ratings = ref(0)
 const ratingStats = ref({ averageRating: 0, totalRatings: 0 })
 const isSubmittingRating = ref(false)
 const measurementSystem = ref<'metric' | 'imperial'>('metric')
+const customServingSize = ref(0)
+
+// Initialize serving size when recipe loads
+watch(() => recipe.value, (newRecipe) => {
+  if (newRecipe && customServingSize.value === 0) {
+    customServingSize.value = newRecipe.servings
+  }
+}, { immediate: true })
 
 // Measurement conversion functions
 function convertVolume(qty: number, unit: string, toSystem: 'metric' | 'imperial'): { qty: number, unit: string } {
@@ -86,8 +94,11 @@ function convertMeasurement(qty: number, unit: string, toSystem: 'metric' | 'imp
 const displayedIngredients = computed(() => {
   if (!recipe.value) return []
 
+  const scale = customServingSize.value / recipe.value.servings
+
   return recipe.value.ingredients.map(ingredient => {
-    const converted = convertMeasurement(ingredient.qty, ingredient.unit, measurementSystem.value)
+    const scaledQty = ingredient.qty * scale
+    const converted = convertMeasurement(scaledQty, ingredient.unit, measurementSystem.value)
     return {
       ...ingredient,
       qty: converted.qty,
@@ -318,6 +329,30 @@ function convertToRecipeFraction(value: number): string {
                     >
                       {{ measurementSystem === 'metric' ? 'Metric' : 'Imperial' }}
                     </UButton>
+                  </div>
+
+                  <!-- Serving Size Selector -->
+                  <div class="mb-4 pb-4 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                      <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Servings</span>
+                      <div class="flex items-center gap-2">
+                        <UButton
+                          icon="heroicons-solid:minus"
+                          size="xs"
+                          color="gray"
+                          :disabled="customServingSize <= 1"
+                          @click="customServingSize > 1 && customServingSize--"
+                        />
+                        <span class="text-lg font-semibold min-w-[2rem] text-center">{{ customServingSize }}</span>
+                        <UButton
+                          icon="heroicons-solid:plus"
+                          size="xs"
+                          color="gray"
+                          :disabled="customServingSize >= 12"
+                          @click="customServingSize < 12 && customServingSize++"
+                        />
+                      </div>
+                    </div>
                   </div>
                   <ul
                     v-for="ingredient in displayedIngredients"

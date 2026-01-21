@@ -7,7 +7,14 @@ const dummyRecipes = recipesDummyData()
 const mealAmount = ref(1)
 const servingSize = ref(2)
 const recipes = ref<Recipe[]>([])
-const mealPlanList = useStorage<Recipe[]>('meal-plan-list', [])
+
+// Store recipes with their custom serving sizes
+interface MealPlanItem {
+  recipe: Recipe
+  customServings: number
+}
+const mealPlanList = useStorage<MealPlanItem[]>('meal-plan-list', [])
+
 // Track saved recipe IDs
 const savedRecipes = ref<number[]>([])
 // Excluded recipe IDs
@@ -48,8 +55,8 @@ const shoppingList = computed(() => {
 
   const ingredientMap = new Map<string, { name: string, qty: number, unit: string }>()
 
-  mealPlanList.value.forEach(recipe => {
-    const scaledRecipe = scaleRecipeIngredients(recipe, servingSize.value)
+  mealPlanList.value.forEach(mealPlanItem => {
+    const scaledRecipe = scaleRecipeIngredients(mealPlanItem.recipe, mealPlanItem.customServings)
     scaledRecipe.ingredients.forEach(ingredient => {
       const key = `${ingredient.name.toLowerCase()}-${ingredient.unit}`
       if (ingredientMap.has(key)) {
@@ -109,14 +116,17 @@ async function generateRandomRecipes() {
 // Add a recipe to the meal plan and mark it as saved
 function addToMealPlan(recipe: Recipe) {
   if (!savedRecipes.value.includes(recipe.id)) {
-    mealPlanList.value.push(recipe)
+    mealPlanList.value.push({
+      recipe,
+      customServings: servingSize.value
+    })
     savedRecipes.value.push(recipe.id)
   }
 }
 
 // Remove a recipe from the meal plan
 function removeFromMealPlan(recipeId: number) {
-  mealPlanList.value = mealPlanList.value.filter(recipe => recipe.id !== recipeId)
+  mealPlanList.value = mealPlanList.value.filter(item => item.recipe.id !== recipeId)
   savedRecipes.value = savedRecipes.value.filter(id => id !== recipeId)
 }
 
@@ -220,33 +230,54 @@ useSeoMeta({
 
       <!-- this could be a component randomiser-start.vue --->
       <template v-else-if="!recipes.length && !isLoadingRecipes">
-        <h1 class="text-center text-2xl font-semibold mt-8">
+        <h1 class="text-center text-2xl font-semibold mt-8 mb-6">
           Let fortune decide your meals this week
         </h1>
-        <h2 class="text-center text-lg font-semibold mt-8">
-          How many meals would you like ?
-        </h2>
-        <AmountMealSelector
-          class="mb-4"
-          @update:meal-amount="setMealAmount"
-        />
 
-        <h2 class="text-center text-lg font-semibold mt-6">
-          How many servings per meal?
-        </h2>
-        <form class="max-w-xs mx-auto flex justify-center my-4 mb-8">
-          <div class="relative flex items-center max-w-[8rem]">
-            <UButton
-              icon="heroicons-solid:minus"
-              @click.prevent="servingSize > 1 && servingSize--"
-            />
-            <span class="mx-4 text-2xl font-semibold text-center">{{ servingSize }}</span>
-            <UButton
-              icon="heroicons-solid:plus"
-              @click.prevent="servingSize < 12 && servingSize++"
-            />
+        <!-- Compact selector card -->
+        <div class="max-w-md mx-auto bg-gray-50 dark:bg-neutral-800 rounded-xl p-6 mb-6">
+          <div class="flex items-center justify-between gap-6">
+            <div class="flex-1">
+              <h2 class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 text-center">
+                Meals
+              </h2>
+              <div class="flex items-center justify-center gap-3">
+                <UButton
+                  icon="heroicons-solid:minus"
+                  size="sm"
+                  @click.prevent="mealAmount > 1 && mealAmount--"
+                />
+                <span class="text-3xl font-bold text-primary min-w-[3rem] text-center">{{ mealAmount }}</span>
+                <UButton
+                  icon="heroicons-solid:plus"
+                  size="sm"
+                  @click.prevent="mealAmount < 7 && mealAmount++"
+                />
+              </div>
+            </div>
+
+            <div class="w-px h-12 bg-gray-300 dark:bg-gray-600" />
+
+            <div class="flex-1">
+              <h2 class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 text-center">
+                Servings
+              </h2>
+              <div class="flex items-center justify-center gap-3">
+                <UButton
+                  icon="heroicons-solid:minus"
+                  size="sm"
+                  @click.prevent="servingSize > 1 && servingSize--"
+                />
+                <span class="text-3xl font-bold text-primary min-w-[3rem] text-center">{{ servingSize }}</span>
+                <UButton
+                  icon="heroicons-solid:plus"
+                  size="sm"
+                  @click.prevent="servingSize < 12 && servingSize++"
+                />
+              </div>
+            </div>
           </div>
-        </form>
+        </div>
         <div class="flex justify-center items-center space-x-4">
           <!-- Left Blurred Card -->
           <RecipeImageBlurred
@@ -320,28 +351,51 @@ useSeoMeta({
       <UModal v-model="showShoppingList" :ui="{ width: 'max-w-2xl' }">
         <UCard>
           <template #header>
-            <div class="flex items-center justify-between">
+            <div class="flex flex-col gap-2">
               <h3 class="text-xl font-bold">Shopping List</h3>
               <div class="text-sm text-gray-500">
-                For {{ servingSize }} {{ servingSize === 1 ? 'serving' : 'servings' }} per meal
+                {{ mealPlanList.length }} {{ mealPlanList.length === 1 ? 'recipe' : 'recipes' }} in meal plan
               </div>
             </div>
           </template>
 
-          <div class="space-y-4">
+          <div class="space-y-6">
             <div v-if="shoppingList.length === 0" class="text-center py-8 text-gray-500">
               Add recipes to your meal plan to generate a shopping list
             </div>
-            <div v-else class="divide-y divide-gray-200 dark:divide-gray-700">
-              <div
-                v-for="(item, index) in shoppingList"
-                :key="index"
-                class="py-3 flex items-center justify-between"
-              >
-                <span class="text-gray-900 dark:text-white">{{ item.name }}</span>
-                <span class="font-medium text-gray-700 dark:text-gray-300">
-                  {{ item.qty }} {{ item.unit }}
-                </span>
+            <div v-else>
+              <!-- Recipe list with servings -->
+              <div class="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Recipes</h4>
+                <div class="space-y-1">
+                  <div
+                    v-for="(item, index) in mealPlanList"
+                    :key="index"
+                    class="text-sm flex items-center justify-between"
+                  >
+                    <span class="text-gray-600 dark:text-gray-400">{{ item.recipe.name }}</span>
+                    <span class="text-gray-500 dark:text-gray-500">
+                      {{ item.customServings }} {{ item.customServings === 1 ? 'serving' : 'servings' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Ingredients list -->
+              <div>
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Ingredients</h4>
+                <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                  <div
+                    v-for="(item, index) in shoppingList"
+                    :key="index"
+                    class="py-3 flex items-center justify-between"
+                  >
+                    <span class="text-gray-900 dark:text-white">{{ item.name }}</span>
+                    <span class="font-medium text-gray-700 dark:text-gray-300">
+                      {{ item.qty }} {{ item.unit }}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

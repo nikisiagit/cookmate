@@ -2,6 +2,12 @@
 import { useStorage } from '@vueuse/core'
 import type { Recipe } from '~~/types/recipes'
 
+// Store recipes with their custom serving sizes
+interface MealPlanItem {
+  recipe: Recipe
+  customServings: number
+}
+
 const colorMode = useColorMode()
 const isDark = computed(() => colorMode.value === 'dark')
 
@@ -18,7 +24,7 @@ async function clearSession() {
   await clear().finally(() => disconnect.value = false)
 }
 
-const mealPlanList = useStorage<Recipe[]>('meal-plan-list', [])
+const mealPlanList = useStorage<MealPlanItem[]>('meal-plan-list', [])
 
 // Animation for pot icon on first load
 const isAnimating = ref(false)

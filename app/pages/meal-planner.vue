@@ -2,8 +2,14 @@
 import { useStorage } from '@vueuse/core'
 import type { Recipe } from '~~/types/recipes'
 
+// Store recipes with their custom serving sizes
+interface MealPlanItem {
+  recipe: Recipe
+  customServings: number
+}
+
 // get localStorage
-const mealPlanList = useStorage<Recipe[]>('meal-plan-list', [])
+const mealPlanList = useStorage<MealPlanItem[]>('meal-plan-list', [])
 
 useSeoMeta({
   title: 'Meal Planner - CookMate',
@@ -24,7 +30,7 @@ const items = [{
 }]
 
 const { data: ingredients } = useLazyFetch('/api/recipes/list-ingredients', {
-  query: { recipeIds: mealPlanList.value.map(recipe => recipe.id).join(',') },
+  query: { recipeIds: mealPlanList.value.map(item => item.recipe.id).join(',') },
 })
 
 function convertToRecipeFraction(value: number): string {
@@ -91,10 +97,10 @@ function convertToRecipeFraction(value: number): string {
             <!-- ListRecipes.vue -->
             <div class="grid lg:grid-cols-4 gap-8 items-stretch">
               <RecipeCard
-                v-for="recipe in mealPlanList"
-                :key="recipe.id"
+                v-for="mealItem in mealPlanList"
+                :key="mealItem.recipe.id"
                 include-link
-                :recipe="recipe"
+                :recipe="mealItem.recipe"
               />
             </div>
             <!-- end ListRecipes.vue -->
