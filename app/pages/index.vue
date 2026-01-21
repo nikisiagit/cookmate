@@ -71,8 +71,9 @@ const shoppingList = computed(() => {
 
   const ingredientMap = new Map<string, { name: string, qty: number, unit: string }>()
 
+  // Use the current randomiser serving size for ALL recipes
   mealPlanList.value.forEach(mealPlanItem => {
-    const scaledRecipe = scaleRecipeIngredients(mealPlanItem.recipe, mealPlanItem.customServings)
+    const scaledRecipe = scaleRecipeIngredients(mealPlanItem.recipe, servingSize.value)
     scaledRecipe.ingredients.forEach(ingredient => {
       const key = `${ingredient.name.toLowerCase()}-${ingredient.unit}`
       if (ingredientMap.has(key)) {
@@ -367,10 +368,16 @@ useSeoMeta({
       <UModal v-model="showShoppingList" :ui="{ width: 'max-w-2xl' }">
         <UCard>
           <template #header>
-            <div class="flex flex-col gap-2">
-              <h3 class="text-xl font-bold">Shopping List</h3>
-              <div class="text-sm text-gray-500">
-                {{ mealPlanList.length }} {{ mealPlanList.length === 1 ? 'recipe' : 'recipes' }} in meal plan
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-xl font-bold">Shopping List</h3>
+                <div class="text-sm text-gray-500">
+                  {{ mealPlanList.length }} {{ mealPlanList.length === 1 ? 'recipe' : 'recipes' }} in meal plan
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-2xl font-bold text-primary">{{ servingSize }}</div>
+                <div class="text-xs text-gray-500">{{ servingSize === 1 ? 'serving' : 'servings' }}</div>
               </div>
             </div>
           </template>
@@ -380,19 +387,16 @@ useSeoMeta({
               Add recipes to your meal plan to generate a shopping list
             </div>
             <div v-else>
-              <!-- Recipe list with servings -->
+              <!-- Recipe list -->
               <div class="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
                 <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Recipes</h4>
                 <div class="space-y-1">
                   <div
                     v-for="(item, index) in mealPlanList"
                     :key="index"
-                    class="text-sm flex items-center justify-between"
+                    class="text-sm text-gray-600 dark:text-gray-400"
                   >
-                    <span class="text-gray-600 dark:text-gray-400">{{ item.recipe.name }}</span>
-                    <span class="text-gray-500 dark:text-gray-500">
-                      {{ item.customServings }} {{ item.customServings === 1 ? 'serving' : 'servings' }}
-                    </span>
+                    • {{ item.recipe.name }}
                   </div>
                 </div>
               </div>
