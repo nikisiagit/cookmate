@@ -28,6 +28,11 @@ onMounted(async () => {
       console.log('Wake Lock error:', err)
     }
   }
+
+  // Request notification permission
+  if ('Notification' in window && Notification.permission === 'default') {
+    await Notification.requestPermission()
+  }
 })
 
 const currentStep = computed(() => {
@@ -37,15 +42,85 @@ const currentStep = computed(() => {
 const isFirstStep = computed(() => currentStepIndex.value === 0)
 const isLastStep = computed(() => currentStepIndex.value === (recipe.value?.steps.length || 1) - 1)
 
+// Timer functionality
+const timerMinutes = ref(0)
+const timerSeconds = ref(0)
+const timerInput = ref(5)
+const isTimerRunning = ref(false)
+const showTimer = ref(false)
+let timerInterval: NodeJS.Timeout | null = null
+
+const formattedTime = computed(() => {
+  const mins = String(timerMinutes.value).padStart(2, '0')
+  const secs = String(timerSeconds.value).padStart(2, '0')
+  return `${mins}:${secs}`
+})
+
+function startTimer() {
+  if (!isTimerRunning.value) {
+    if (timerMinutes.value === 0 && timerSeconds.value === 0) {
+      timerMinutes.value = timerInput.value
+      timerSeconds.value = 0
+    }
+    isTimerRunning.value = true
+    showTimer.value = true
+
+    timerInterval = setInterval(() => {
+      if (timerSeconds.value === 0) {
+        if (timerMinutes.value === 0) {
+          stopTimer()
+          // Play sound or show notification
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Timer Complete!', {
+              body: 'Your cooking timer has finished.',
+            })
+          }
+          return
+        }
+        timerMinutes.value--
+        timerSeconds.value = 59
+      } else {
+        timerSeconds.value--
+      }
+    }, 1000)
+  }
+}
+
+function pauseTimer() {
+  isTimerRunning.value = false
+  if (timerInterval) {
+    clearInterval(timerInterval)
+    timerInterval = null
+  }
+}
+
+function stopTimer() {
+  isTimerRunning.value = false
+  if (timerInterval) {
+    clearInterval(timerInterval)
+    timerInterval = null
+  }
+  timerMinutes.value = 0
+  timerSeconds.value = 0
+}
+
+function toggleTimer() {
+  showTimer.value = !showTimer.value
+}
+
 function nextStep() {
   if (!isLastStep.value) {
     currentStepIndex.value++
+    // Reset timer when moving to next step
+    stopTimer()
   }
 }
 
 function previousStep() {
   if (!isFirstStep.value) {
     currentStepIndex.value--
+    // Reset timer when going back
+    stopTimer()
   }
 }
 
@@ -54,6 +129,9 @@ function toggleIngredients() {
 }
 
 function exitCookMode() {
+  if (timerInterval) {
+    clearInterval(timerInterval)
+  }
   navigateTo(`/recipes/${route.params.id}`)
 }
 </script>
@@ -121,6 +199,79 @@ function exitCookMode() {
               class="bg-primary-500 h-2 rounded-full transition-all duration-300"
               :style="{ width: `${((currentStepIndex + 1) / (recipe.steps?.length || 1)) * 100}%` }"
             />
+          </div>
+        </div>
+
+        <!-- Timer Section -->
+        <div class="mb-6">
+          <button
+            class="w-full flex items-center justify-between p-4 bg-primary-50 dark:bg-primary-900/20 rounded-lg border-2 border-primary-200 dark:border-primary-800"
+            @click="toggleTimer"
+          >
+            <span class="font-semibold text-lg text-primary-900 dark:text-primary-100 flex items-center gap-2">
+              <UIcon name="heroicons:clock-20-solid" size="20" />
+              Timer
+            </span>
+            <UIcon
+              :name="showTimer ? 'heroicons:chevron-up-20-solid' : 'heroicons:chevron-down-20-solid'"
+              size="20"
+              class="text-primary-900 dark:text-primary-100"
+            />
+          </button>
+
+          <div
+            v-if="showTimer"
+            class="mt-2 p-4 bg-primary-50 dark:bg-primary-900/20 rounded-lg border-2 border-primary-200 dark:border-primary-800"
+          >
+            <div class="text-center">
+              <!-- Timer Display -->
+              <div v-if="isTimerRunning || (timerMinutes > 0 || timerSeconds > 0)" class="text-5xl font-bold text-primary-900 dark:text-primary-100 mb-4">
+                {{ formattedTime }}
+              </div>
+
+              <!-- Timer Input -->
+              <div v-else class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Set Timer (minutes)
+                </label>
+                <UInput
+                  v-model="timerInput"
+                  type="number"
+                  min="1"
+                  max="180"
+                  class="w-full max-w-xs mx-auto"
+                />
+              </div>
+
+              <!-- Timer Controls -->
+              <div class="flex gap-2 justify-center">
+                <UButton
+                  v-if="!isTimerRunning"
+                  icon="heroicons:play-20-solid"
+                  color="primary"
+                  @click="startTimer"
+                >
+                  Start
+                </UButton>
+                <UButton
+                  v-if="isTimerRunning"
+                  icon="heroicons:pause-20-solid"
+                  color="gray"
+                  @click="pauseTimer"
+                >
+                  Pause
+                </UButton>
+                <UButton
+                  v-if="timerMinutes > 0 || timerSeconds > 0"
+                  icon="heroicons:arrow-path-20-solid"
+                  color="red"
+                  variant="outline"
+                  @click="stopTimer"
+                >
+                  Reset
+                </UButton>
+              </div>
+            </div>
           </div>
         </div>
 

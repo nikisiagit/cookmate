@@ -27,6 +27,74 @@ watchEffect(async () => {
 const ratings = ref(0)
 const ratingStats = ref({ averageRating: 0, totalRatings: 0 })
 const isSubmittingRating = ref(false)
+const measurementSystem = ref<'metric' | 'imperial'>('metric')
+
+// Measurement conversion functions
+function convertVolume(qty: number, unit: string, toSystem: 'metric' | 'imperial'): { qty: number, unit: string } {
+  const lowerUnit = unit.toLowerCase()
+
+  if (toSystem === 'imperial') {
+    // Metric to Imperial
+    if (lowerUnit === 'ml') {
+      if (qty >= 236.588) return { qty: Number((qty / 236.588).toFixed(2)), unit: 'cup' }
+      if (qty >= 14.787) return { qty: Number((qty / 14.787).toFixed(2)), unit: 'tbsp' }
+      return { qty: Number((qty / 4.929).toFixed(2)), unit: 'tsp' }
+    }
+    if (lowerUnit === 'l') return { qty: Number((qty * 4.227).toFixed(2)), unit: 'cup' }
+  } else {
+    // Imperial to Metric
+    if (lowerUnit === 'cup') return { qty: Number((qty * 236.588).toFixed(0)), unit: 'ml' }
+    if (lowerUnit === 'tbsp') return { qty: Number((qty * 14.787).toFixed(0)), unit: 'ml' }
+    if (lowerUnit === 'tsp') return { qty: Number((qty * 4.929).toFixed(0)), unit: 'ml' }
+  }
+
+  return { qty, unit }
+}
+
+function convertWeight(qty: number, unit: string, toSystem: 'metric' | 'imperial'): { qty: number, unit: string } {
+  const lowerUnit = unit.toLowerCase()
+
+  if (toSystem === 'imperial') {
+    // Metric to Imperial
+    if (lowerUnit === 'g') {
+      if (qty >= 453.592) return { qty: Number((qty / 453.592).toFixed(2)), unit: 'lb' }
+      return { qty: Number((qty / 28.35).toFixed(2)), unit: 'oz' }
+    }
+    if (lowerUnit === 'kg') return { qty: Number((qty * 2.205).toFixed(2)), unit: 'lb' }
+  } else {
+    // Imperial to Metric
+    if (lowerUnit === 'oz') return { qty: Number((qty * 28.35).toFixed(0)), unit: 'g' }
+    if (lowerUnit === 'lb') return { qty: Number((qty * 453.592).toFixed(0)), unit: 'g' }
+  }
+
+  return { qty, unit }
+}
+
+function convertMeasurement(qty: number, unit: string, toSystem: 'metric' | 'imperial'): { qty: number, unit: string } {
+  const volumeUnits = ['ml', 'l', 'cup', 'tbsp', 'tsp']
+  const weightUnits = ['g', 'kg', 'oz', 'lb']
+
+  if (volumeUnits.includes(unit.toLowerCase())) {
+    return convertVolume(qty, unit, toSystem)
+  } else if (weightUnits.includes(unit.toLowerCase())) {
+    return convertWeight(qty, unit, toSystem)
+  }
+
+  return { qty, unit }
+}
+
+const displayedIngredients = computed(() => {
+  if (!recipe.value) return []
+
+  return recipe.value.ingredients.map(ingredient => {
+    const converted = convertMeasurement(ingredient.qty, ingredient.unit, measurementSystem.value)
+    return {
+      ...ingredient,
+      qty: converted.qty,
+      unit: converted.unit
+    }
+  })
+})
 
 async function loadRatingStats() {
   try {
@@ -237,11 +305,22 @@ function convertToRecipeFraction(value: number): string {
             <div class="flex w-full gap-8 lg:gap-16 flex-col sm:flex-row">
               <div class="sm:w-1/3 lg:w-1/3 w-full">
                 <div class="p-6 block w-full h-fit rounded-xl overflow-hidden border border-gray-200">
-                  <p class="text-2xl mb-3 font-bold text-primary">
-                    Ingredients
-                  </p>
+                  <div class="flex items-center justify-between mb-3">
+                    <p class="text-2xl font-bold text-primary">
+                      Ingredients
+                    </p>
+                    <UButton
+                      :icon="measurementSystem === 'metric' ? 'heroicons:beaker-20-solid' : 'heroicons:scale-20-solid'"
+                      size="xs"
+                      color="gray"
+                      variant="ghost"
+                      @click="measurementSystem = measurementSystem === 'metric' ? 'imperial' : 'metric'"
+                    >
+                      {{ measurementSystem === 'metric' ? 'Metric' : 'Imperial' }}
+                    </UButton>
+                  </div>
                   <ul
-                    v-for="ingredient in recipe.ingredients"
+                    v-for="ingredient in displayedIngredients"
                     :key="ingredient.id"
                   >
                     <li class="text-lg lg:text-xl mb-1 lg:mb-2 flex  items-center">

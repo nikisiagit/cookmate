@@ -5,6 +5,7 @@ import type { Recipe } from '~~/types/recipes'
 const dummyRecipes = recipesDummyData()
 
 const mealAmount = ref(1)
+const servingSize = ref(2)
 const recipes = ref<Recipe[]>([])
 const mealPlanList = useStorage<Recipe[]>('meal-plan-list', [])
 // Track saved recipe IDs
@@ -15,10 +16,60 @@ const excludedIds = ref<number[]>([])
 const isLoadingRecipes = ref(false)
 // loading state for each recipe
 const loadingStates = ref<boolean[]>([])
+const showShoppingList = ref(false)
 
 const setMealAmount = (value: number) => {
   mealAmount.value = value
 }
+
+const setServingSize = (value: number) => {
+  servingSize.value = value
+}
+
+// Scale ingredient quantities based on serving size
+function scaleRecipeIngredients(recipe: Recipe, targetServings: number): Recipe {
+  if (!recipe.servings || recipe.servings === 0) return recipe
+
+  const scale = targetServings / recipe.servings
+
+  return {
+    ...recipe,
+    servings: targetServings,
+    ingredients: recipe.ingredients.map(ingredient => ({
+      ...ingredient,
+      qty: Number((ingredient.qty * scale).toFixed(2))
+    }))
+  }
+}
+
+// Generate shopping list from meal plan
+const shoppingList = computed(() => {
+  if (!mealPlanList.value.length) return []
+
+  const ingredientMap = new Map<string, { name: string, qty: number, unit: string }>()
+
+  mealPlanList.value.forEach(recipe => {
+    const scaledRecipe = scaleRecipeIngredients(recipe, servingSize.value)
+    scaledRecipe.ingredients.forEach(ingredient => {
+      const key = `${ingredient.name.toLowerCase()}-${ingredient.unit}`
+      if (ingredientMap.has(key)) {
+        const existing = ingredientMap.get(key)!
+        existing.qty += ingredient.qty
+      } else {
+        ingredientMap.set(key, {
+          name: ingredient.name,
+          qty: ingredient.qty,
+          unit: ingredient.unit
+        })
+      }
+    })
+  })
+
+  return Array.from(ingredientMap.values()).map(item => ({
+    ...item,
+    qty: Number(item.qty.toFixed(2))
+  }))
+})
 
 async function fetchRandomRecipes(limit: number, excludedIds: number[] = []): Promise<Recipe[]> {
   const recipes = await $fetch<Recipe[]>('/api/recipes/random', {
@@ -106,6 +157,25 @@ async function handleDiscardRecipe(index: number, id: number) {
   }
 }
 
+// Copy shopping list to clipboard
+async function copyShoppingList() {
+  const text = shoppingList.value
+    .map(item => `${item.name}: ${item.qty} ${item.unit}`)
+    .join('\n')
+
+  try {
+    await navigator.clipboard.writeText(text)
+    const toast = useToast()
+    toast.add({
+      title: 'Copied!',
+      description: 'Shopping list copied to clipboard',
+      color: 'green'
+    })
+  } catch (error) {
+    console.error('Failed to copy:', error)
+  }
+}
+
 useSeoMeta({
   title: 'CookMate: Your ally in the Kitchen',
   ogTitle: 'CookMate: Your ally in the Kitchen',
@@ -120,6 +190,25 @@ useSeoMeta({
 <template>
   <UContainer>
     <main class="pb-[90px]">
+      <!-- Navigation Tabs -->
+      <div class="flex justify-center gap-2 mb-6 mt-4">
+        <UButton
+          size="lg"
+          color="primary"
+          variant="solid"
+          :to="'/'"
+        >
+          Randomiser
+        </UButton>
+        <UButton
+          size="lg"
+          color="gray"
+          variant="ghost"
+          :to="'/recipes'"
+        >
+          All Recipes
+        </UButton>
+      </div>
       <template v-if="isLoadingRecipes">
         <h1 class="text-2xl font-semibold text-center my-8">
           Generating random recipes...
@@ -138,9 +227,26 @@ useSeoMeta({
           How many meals would you like ?
         </h2>
         <AmountMealSelector
-          class="mb-8"
+          class="mb-4"
           @update:meal-amount="setMealAmount"
         />
+
+        <h2 class="text-center text-lg font-semibold mt-6">
+          How many servings per meal?
+        </h2>
+        <form class="max-w-xs mx-auto flex justify-center my-4 mb-8">
+          <div class="relative flex items-center max-w-[8rem]">
+            <UButton
+              icon="heroicons-solid:minus"
+              @click.prevent="servingSize > 1 && servingSize--"
+            />
+            <span class="mx-4 text-2xl font-semibold text-center">{{ servingSize }}</span>
+            <UButton
+              icon="heroicons-solid:plus"
+              @click.prevent="servingSize < 12 && servingSize++"
+            />
+          </div>
+        </form>
         <div class="flex justify-center items-center space-x-4">
           <!-- Left Blurred Card -->
           <RecipeImageBlurred
@@ -196,7 +302,65 @@ useSeoMeta({
             />
           </template>
         </div>
+
+        <!-- Shopping List Button -->
+        <div v-if="mealPlanList.length > 0" class="flex justify-center mt-8">
+          <UButton
+            icon="heroicons:shopping-cart-20-solid"
+            size="lg"
+            color="primary"
+            @click="showShoppingList = true"
+          >
+            View Shopping List ({{ shoppingList.length }} items)
+          </UButton>
+        </div>
       </template>
+
+      <!-- Shopping List Modal -->
+      <UModal v-model="showShoppingList" :ui="{ width: 'max-w-2xl' }">
+        <UCard>
+          <template #header>
+            <div class="flex items-center justify-between">
+              <h3 class="text-xl font-bold">Shopping List</h3>
+              <div class="text-sm text-gray-500">
+                For {{ servingSize }} {{ servingSize === 1 ? 'serving' : 'servings' }} per meal
+              </div>
+            </div>
+          </template>
+
+          <div class="space-y-4">
+            <div v-if="shoppingList.length === 0" class="text-center py-8 text-gray-500">
+              Add recipes to your meal plan to generate a shopping list
+            </div>
+            <div v-else class="divide-y divide-gray-200 dark:divide-gray-700">
+              <div
+                v-for="(item, index) in shoppingList"
+                :key="index"
+                class="py-3 flex items-center justify-between"
+              >
+                <span class="text-gray-900 dark:text-white">{{ item.name }}</span>
+                <span class="font-medium text-gray-700 dark:text-gray-300">
+                  {{ item.qty }} {{ item.unit }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <template #footer>
+            <div class="flex justify-end gap-2">
+              <UButton color="gray" variant="ghost" @click="showShoppingList = false">
+                Close
+              </UButton>
+              <UButton
+                icon="heroicons:clipboard-document-16-solid"
+                @click="copyShoppingList"
+              >
+                Copy to Clipboard
+              </UButton>
+            </div>
+          </template>
+        </UCard>
+      </UModal>
     </main>
   </UContainer>
 </template>

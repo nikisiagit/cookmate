@@ -13,8 +13,22 @@ definePageMeta({
 
 const { loggedIn } = useUserSession()
 const isOpen = ref(false)
+const searchQuery = ref('')
 
 const { data: recipes, pending, refresh } = await useFetch('/api/recipes/list')
+
+const filteredRecipes = computed(() => {
+  if (!recipes.value || !searchQuery.value) {
+    return recipes.value
+  }
+
+  const query = searchQuery.value.toLowerCase()
+  return recipes.value.filter(recipe =>
+    recipe.name.toLowerCase().includes(query) ||
+    recipe.diet.toLowerCase().includes(query) ||
+    recipe.difficulty.toLowerCase().includes(query)
+  )
+})
 
 const deleteRecipe = async (id: number) => {
   if (!confirm('Are you sure you want to delete this recipe?')) {
@@ -121,16 +135,38 @@ const columns = [
       v-else
       class="pb-[90px]"
     >
-      <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-          Manage Recipes
-        </h1>
-        <UButton
-          to="/recipes/new"
-          icon="heroicons:plus-16-solid"
-        >
-          Create New Recipe
-        </UButton>
+      <div class="flex flex-col gap-4 mb-6">
+        <div class="flex items-center justify-between">
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+            Manage Recipes
+          </h1>
+          <UButton
+            to="/recipes/new"
+            icon="heroicons:plus-16-solid"
+          >
+            Create New Recipe
+          </UButton>
+        </div>
+
+        <div class="w-full max-w-md">
+          <UInput
+            v-model="searchQuery"
+            icon="heroicons:magnifying-glass-20-solid"
+            placeholder="Search recipes by name, diet, or difficulty..."
+            :ui="{ icon: { trailing: { pointer: '' } } }"
+          >
+            <template #trailing>
+              <UButton
+                v-show="searchQuery !== ''"
+                color="gray"
+                variant="link"
+                icon="heroicons:x-mark-20-solid"
+                :padded="false"
+                @click="searchQuery = ''"
+              />
+            </template>
+          </UInput>
+        </div>
       </div>
 
       <div
@@ -153,9 +189,24 @@ const columns = [
         </UButton>
       </div>
 
+      <div
+        v-else-if="filteredRecipes && filteredRecipes.length === 0"
+        class="text-center py-8"
+      >
+        <p class="text-gray-500">No recipes match your search.</p>
+        <UButton
+          color="gray"
+          variant="ghost"
+          class="mt-4"
+          @click="searchQuery = ''"
+        >
+          Clear search
+        </UButton>
+      </div>
+
       <UTable
         v-else
-        :rows="recipes"
+        :rows="filteredRecipes"
         :columns="columns"
         class="w-full"
       >

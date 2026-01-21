@@ -29,6 +29,25 @@ const filteredRecipes = computed<Recipe[]>(() => {
 <template>
   <UContainer>
     <main class="pb-[90px]">
+      <!-- Navigation Tabs -->
+      <div class="flex justify-center gap-2 mb-6 mt-4">
+        <UButton
+          size="lg"
+          color="gray"
+          variant="ghost"
+          :to="'/'"
+        >
+          Randomiser
+        </UButton>
+        <UButton
+          size="lg"
+          color="primary"
+          variant="solid"
+          :to="'/recipes'"
+        >
+          All Recipes
+        </UButton>
+      </div>
       <template v-if="status === 'pending'">
         <h1 class="text-2xl font-semibold text-center my-8">
           Loading...
