@@ -53,10 +53,19 @@ const setServingSize = (value: number) => {
 function scaleRecipeIngredients(recipe: Recipe, targetServings: number): Recipe {
   if (!recipe.servings || recipe.servings === 0) return recipe
 
-  const scale = targetServings / recipe.servings
-
   console.log('=== SCALING RECIPE ===')
   console.log('Recipe name:', recipe.name)
+  console.log('Recipe data:', JSON.stringify(recipe, null, 2))
+  console.log('Has ingredients?', !!recipe.ingredients)
+  console.log('Ingredients length:', recipe.ingredients?.length || 0)
+
+  if (!recipe.ingredients || !Array.isArray(recipe.ingredients)) {
+    console.warn('Recipe has no ingredients array:', recipe.name)
+    return recipe
+  }
+
+  const scale = targetServings / recipe.servings
+
   console.log('Original servings:', recipe.servings)
   console.log('Target servings:', targetServings)
   console.log('Scale factor:', scale)
@@ -90,7 +99,14 @@ const shoppingList = computed(() => {
   mealPlanList.value.forEach((mealPlanItem, index) => {
     console.log(`\nProcessing recipe ${index + 1}:`, mealPlanItem.recipe.name)
     console.log('  Stored customServings:', mealPlanItem.customServings)
+
     const scaledRecipe = scaleRecipeIngredients(mealPlanItem.recipe, servingSize.value)
+
+    if (!scaledRecipe.ingredients || !Array.isArray(scaledRecipe.ingredients)) {
+      console.warn('  Skipping recipe - no ingredients:', scaledRecipe.name)
+      return
+    }
+
     scaledRecipe.ingredients.forEach(ingredient => {
       const key = `${ingredient.name.toLowerCase()}-${ingredient.unit}`
       if (ingredientMap.has(key)) {
