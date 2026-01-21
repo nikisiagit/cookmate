@@ -60,7 +60,7 @@ function exitCookMode() {
 
 <template>
   <UContainer v-if="recipe">
-    <div class="min-h-screen bg-white dark:bg-neutral-900 pb-32">
+    <div class="min-h-screen bg-white dark:bg-neutral-900 pb-40">
       <!-- Header -->
       <div class="sticky top-0 z-10 bg-white dark:bg-neutral-900 border-b border-gray-200 dark:border-neutral-700 p-4">
         <div class="flex items-center justify-between">
@@ -134,7 +134,7 @@ function exitCookMode() {
         </div>
 
         <!-- Navigation Buttons -->
-        <div class="fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-900 border-t border-gray-200 dark:border-neutral-700 p-4">
+        <div class="fixed bottom-12 left-0 right-0 z-20 bg-white dark:bg-neutral-900 border-t border-gray-200 dark:border-neutral-700 p-4">
           <div class="max-w-4xl mx-auto flex gap-4">
             <UButton
               :disabled="isFirstStep"
