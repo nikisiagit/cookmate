@@ -118,6 +118,60 @@ function removeStep(index: number) {
 
 const loading = ref(false)
 const error = ref()
+const extractUrl = ref('')
+const extracting = ref(false)
+const extractError = ref('')
+
+const extractRecipeFromUrl = async () => {
+  if (!extractUrl.value) return
+
+  try {
+    extracting.value = true
+    extractError.value = ''
+
+    const data = await $fetch('/api/recipes/extract', {
+      method: 'POST',
+      body: { url: extractUrl.value },
+    })
+
+    // Populate the form with extracted data
+    recipe.value = {
+      ...recipe.value,
+      name: data.name || recipe.value.name,
+      description: data.description || recipe.value.description,
+      servings: data.servings || recipe.value.servings,
+      hours: data.hours || recipe.value.hours,
+      minutes: data.minutes || recipe.value.minutes,
+      difficulty: data.difficulty || recipe.value.difficulty,
+      diet: data.diet || recipe.value.diet,
+      calories: data.calories || recipe.value.calories,
+      fat: data.fat || recipe.value.fat,
+      protein: data.protein || recipe.value.protein,
+      carbs: data.carbs || recipe.value.carbs,
+      sugar: data.sugar || recipe.value.sugar,
+      sourceUrl: data.sourceUrl || recipe.value.sourceUrl,
+      ingredients: data.ingredients && data.ingredients.length > 0 ? data.ingredients : recipe.value.ingredients,
+      steps: data.steps && data.steps.length > 0 ? data.steps : recipe.value.steps,
+    }
+
+    const toast = useToast()
+    toast.add({
+      title: 'Success!',
+      description: 'Recipe data extracted. Please review and edit as needed.',
+      color: 'green'
+    })
+  } catch (e: any) {
+    extractError.value = e.data?.message || 'Failed to extract recipe data'
+    const toast = useToast()
+    toast.add({
+      title: 'Error',
+      description: extractError.value,
+      color: 'red'
+    })
+  } finally {
+    extracting.value = false
+  }
+}
 
 const onSubmit = async (e: Event): Promise<any> => {
   e.preventDefault()
@@ -378,7 +432,37 @@ const { loggedIn } = useUserSession()
         Create a new recipe
       </h1>
 
+      <!-- URL Extraction Card -->
       <div class="mx-auto w-full max-w-screen-2xl py-4">
+        <div class="mb-6 p-6 bg-primary-50 dark:bg-primary-900/20 rounded-xl border-2 border-primary-200 dark:border-primary-800">
+          <div class="flex items-center gap-2 mb-3">
+            <UIcon name="heroicons:link-20-solid" size="20" class="text-primary-600 dark:text-primary-400" />
+            <h2 class="text-lg font-semibold text-primary-900 dark:text-primary-100">Import from URL</h2>
+          </div>
+          <p class="text-sm text-primary-700 dark:text-primary-300 mb-4">
+            Paste a recipe URL and we'll extract the details for you. You can review and edit everything before saving.
+          </p>
+          <div class="flex gap-2">
+            <UInput
+              v-model="extractUrl"
+              placeholder="https://www.example.com/recipe..."
+              class="flex-1"
+              size="lg"
+              icon="heroicons:globe-alt-20-solid"
+              :disabled="extracting"
+            />
+            <UButton
+              :loading="extracting"
+              :disabled="!extractUrl || extracting"
+              size="lg"
+              color="primary"
+              @click="extractRecipeFromUrl"
+            >
+              {{ extracting ? 'Extracting...' : 'Extract' }}
+            </UButton>
+          </div>
+        </div>
+
         <form @submit="(e) => onSubmit(e)">
           <div class="grid md:grid-cols-4 lg:grid-cols-4">
             <div class="pt-2 pb-3 md:px-4 flex flex-col gap-2 col-span-4 md:col-span-4 lg:col-span-2">
