@@ -40,18 +40,14 @@ async function fetchCarouselRecipes() {
   }
 }
 
-// Get current set of 3 recipes to display
-const displayedCarouselRecipes = computed(() => {
-  if (carouselRecipes.value.length === 0) return dummyRecipes
+// Get current recipe to display
+const currentCarouselRecipe = computed(() => {
+  if (carouselRecipes.value.length === 0) return dummyRecipes[0]
 
   const recipes = carouselRecipes.value
   const index = currentCarouselIndex.value
 
-  return [
-    recipes[index % recipes.length],
-    recipes[(index + 1) % recipes.length],
-    recipes[(index + 2) % recipes.length],
-  ]
+  return recipes[index % recipes.length]
 })
 
 // Start carousel rotation
@@ -404,32 +400,56 @@ useSeoMeta({
             </div>
           </div>
         </div>
-        <div class="relative h-[400px] flex items-center justify-center">
-          <Transition
-            name="carousel-flow"
-          >
+        <!-- Carousel -->
+        <div class="relative max-w-3xl mx-auto overflow-hidden rounded-2xl">
+          <Transition name="carousel-slide">
             <div
               :key="currentCarouselIndex"
-              class="absolute flex justify-center items-center space-x-4 w-full"
+              class="relative"
             >
-              <!-- Left Blurred Card -->
-              <RecipeImageBlurred
-                v-if="displayedCarouselRecipes[0]"
-                :image-url="displayedCarouselRecipes[0].imageUrl"
-                :name="displayedCarouselRecipes[0].name"
+              <!-- Recipe Image -->
+              <NuxtImg
+                :src="currentCarouselRecipe.imageUrl"
+                :alt="currentCarouselRecipe.name"
+                class="w-full h-[500px] object-cover rounded-2xl"
+                width="800"
+                height="500"
               />
 
-              <RecipeCard
-                v-if="displayedCarouselRecipes[1]"
-                :recipe="displayedCarouselRecipes[1]"
-              />
-
-              <!-- Right Blurred Card -->
-              <RecipeImageBlurred
-                v-if="displayedCarouselRecipes[2]"
-                :image-url="displayedCarouselRecipes[2].imageUrl"
-                :name="displayedCarouselRecipes[2].name"
-              />
+              <!-- Overlay with recipe details -->
+              <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-8 rounded-b-2xl">
+                <h3 class="text-3xl font-bold text-white mb-4">
+                  {{ currentCarouselRecipe.name }}
+                </h3>
+                <div class="flex items-center gap-6 text-white">
+                  <div class="flex items-center gap-2">
+                    <UIcon
+                      name="i-heroicons-clock"
+                      size="24"
+                      class="text-primary-400"
+                    />
+                    <span class="text-lg">
+                      {{ currentCarouselRecipe.hours ? `${currentCarouselRecipe.hours}h ` : '' }}{{ currentCarouselRecipe.minutes }}m
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <UIcon
+                      name="humbleicons:users"
+                      size="24"
+                      class="text-primary-400"
+                    />
+                    <span class="text-lg">{{ currentCarouselRecipe.servings }} servings</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <UIcon
+                      name="i-heroicons-fire"
+                      size="24"
+                      class="text-primary-400"
+                    />
+                    <span class="text-lg capitalize">{{ currentCarouselRecipe.difficulty }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </Transition>
         </div>
@@ -568,36 +588,36 @@ useSeoMeta({
   transform: scale(1.05);
 }
 
-/* Carousel flow transition - slide with blur and fade */
-.carousel-flow-enter-active {
-  transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+/* Carousel slide transition */
+.carousel-slide-enter-active {
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s ease;
+  position: absolute;
+  width: 100%;
 }
 
-.carousel-flow-leave-active {
-  transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+.carousel-slide-leave-active {
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s ease;
+  position: absolute;
+  width: 100%;
 }
 
-.carousel-flow-enter-from {
-  transform: translateX(-50%);
-  filter: blur(8px);
-  opacity: 0.3;
+.carousel-slide-enter-from {
+  transform: translateX(100%);
+  opacity: 0;
 }
 
-.carousel-flow-enter-to {
+.carousel-slide-enter-to {
   transform: translateX(0);
-  filter: blur(0);
   opacity: 1;
 }
 
-.carousel-flow-leave-from {
+.carousel-slide-leave-from {
   transform: translateX(0);
-  filter: blur(0);
   opacity: 1;
 }
 
-.carousel-flow-leave-to {
-  transform: translateX(50%);
-  filter: blur(8px);
-  opacity: 0.3;
+.carousel-slide-leave-to {
+  transform: translateX(-100%);
+  opacity: 0;
 }
 </style>
