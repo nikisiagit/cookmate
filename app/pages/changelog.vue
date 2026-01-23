@@ -14,6 +14,13 @@ const changelog: ChangelogEntry[] = [
   {
     date: '2026-01-23',
     changes: [
+      'Fixed carousel 500 error caused by array/object type mismatch',
+      'Carousel fallback now properly returns object with left, center, right properties',
+    ]
+  },
+  {
+    date: '2026-01-23',
+    changes: [
       'Improved carousel with blurred side images showing 3 recipes at once',
       'Left image smoothly unblurs as it moves to center position',
       'Smaller, more compact carousel images (center 550px, sides 300px)',
