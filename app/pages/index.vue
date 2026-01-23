@@ -404,9 +404,9 @@ useSeoMeta({
             </div>
           </div>
         </div>
-        <div class="relative">
+        <div class="relative overflow-hidden">
           <Transition
-            name="carousel-fade"
+            name="carousel-slide"
             mode="out-in"
           >
             <div
@@ -569,17 +569,22 @@ useSeoMeta({
   transform: scale(1.05);
 }
 
-/* Carousel fade transition */
-.carousel-fade-enter-active {
-  transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1);
+/* Carousel slide transition */
+.carousel-slide-enter-active {
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.carousel-fade-leave-active {
-  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+.carousel-slide-leave-active {
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  position: absolute;
+  width: 100%;
 }
 
-.carousel-fade-enter-from,
-.carousel-fade-leave-to {
-  opacity: 0;
+.carousel-slide-enter-from {
+  transform: translateX(100%);
+}
+
+.carousel-slide-leave-to {
+  transform: translateX(-100%);
 }
 </style>
