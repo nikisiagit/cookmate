@@ -1,3 +1,84 @@
+// Helper function to extract nutrition info from HTML text
+function extractNutritionFromText(html: string) {
+  const nutrition = {
+    calories: 0,
+    fat: 0,
+    protein: 0,
+    carbs: 0,
+    sugar: 0,
+  }
+
+  // Remove script and style tags to avoid false matches
+  const cleanHtml = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+
+  // Pattern to match nutrition values with various formats
+  // Examples: "Calories: 500", "500 calories", "Fat 10g", "10g fat", "Protein: 25 g"
+  const patterns = [
+    // Calories patterns
+    {
+      key: 'calories',
+      regex: /(?:calories?|energy)[:\s]*(\d+(?:\.\d+)?)\s*(?:kcal|cal)?/i
+    },
+    {
+      key: 'calories',
+      regex: /(\d+(?:\.\d+)?)\s*(?:kcal|cal)/i
+    },
+    // Fat patterns
+    {
+      key: 'fat',
+      regex: /(?:total\s+)?fat[:\s]*(\d+(?:\.\d+)?)\s*g/i
+    },
+    {
+      key: 'fat',
+      regex: /(\d+(?:\.\d+)?)\s*g\s*(?:of\s+)?fat/i
+    },
+    // Protein patterns
+    {
+      key: 'protein',
+      regex: /protein[:\s]*(\d+(?:\.\d+)?)\s*g/i
+    },
+    {
+      key: 'protein',
+      regex: /(\d+(?:\.\d+)?)\s*g\s*(?:of\s+)?protein/i
+    },
+    // Carbohydrate patterns
+    {
+      key: 'carbs',
+      regex: /(?:carbohydrate|carbs?)[:\s]*(\d+(?:\.\d+)?)\s*g/i
+    },
+    {
+      key: 'carbs',
+      regex: /(\d+(?:\.\d+)?)\s*g\s*(?:of\s+)?(?:carbohydrate|carbs?)/i
+    },
+    // Sugar patterns
+    {
+      key: 'sugar',
+      regex: /(?:total\s+)?sugars?[:\s]*(\d+(?:\.\d+)?)\s*g/i
+    },
+    {
+      key: 'sugar',
+      regex: /(\d+(?:\.\d+)?)\s*g\s*(?:of\s+)?sugars?/i
+    },
+  ]
+
+  // Try each pattern
+  for (const pattern of patterns) {
+    if (nutrition[pattern.key as keyof typeof nutrition] === 0) {
+      const match = cleanHtml.match(pattern.regex)
+      if (match && match[1]) {
+        const value = parseFloat(match[1])
+        if (!isNaN(value) && value > 0) {
+          nutrition[pattern.key as keyof typeof nutrition] = value
+          console.log(`Found ${pattern.key} from text: ${value}`)
+        }
+      }
+    }
+  }
+
+  return nutrition
+}
+
 export default defineEventHandler(async (event) => {
   try {
     const body = await readBody(event)
@@ -168,7 +249,7 @@ export default defineEventHandler(async (event) => {
             recipeData.sugar = parseNutrition(nutrition.sugarContent || nutrition.sugar)
           }
 
-          console.log('Extracted recipe data:', {
+          console.log('Extracted recipe data from JSON-LD:', {
             name: recipeData.name,
             ingredientsCount: recipeData.ingredients.length,
             stepsCount: recipeData.steps.length,
@@ -179,12 +260,38 @@ export default defineEventHandler(async (event) => {
       }
     }
 
+    // If nutrition data is missing, try to extract from page text
+    if (recipeData.calories === 0 && recipeData.fat === 0 && recipeData.protein === 0) {
+      console.log('No nutrition data in JSON-LD, searching page text...')
+      const extractedNutrition = extractNutritionFromText(html)
+
+      if (extractedNutrition.calories > 0 || extractedNutrition.fat > 0 || extractedNutrition.protein > 0) {
+        recipeData.calories = extractedNutrition.calories || recipeData.calories
+        recipeData.fat = extractedNutrition.fat || recipeData.fat
+        recipeData.protein = extractedNutrition.protein || recipeData.protein
+        recipeData.carbs = extractedNutrition.carbs || recipeData.carbs
+        recipeData.sugar = extractedNutrition.sugar || recipeData.sugar
+
+        console.log('Extracted nutrition from page text:', extractedNutrition)
+      }
+    }
+
     // Fallback extractions if JSON-LD didn't work
     if (!recipeData.name) {
       // Try Open Graph title
       const ogTitleMatch = html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]*)"[^>]*>/i)
       if (ogTitleMatch) {
         recipeData.name = ogTitleMatch[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim()
+        console.log('Found title from og:title')
+      }
+    }
+
+    if (!recipeData.name) {
+      // Try Twitter title
+      const twitterTitleMatch = html.match(/<meta[^>]*name="twitter:title"[^>]*content="([^"]*)"[^>]*>/i)
+      if (twitterTitleMatch) {
+        recipeData.name = twitterTitleMatch[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim()
+        console.log('Found title from twitter:title')
       }
     }
 
@@ -192,17 +299,31 @@ export default defineEventHandler(async (event) => {
       // Try regular title tag
       const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i)
       if (titleMatch) {
-        recipeData.name = titleMatch[1].replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim()
-        // Remove common site suffixes
-        recipeData.name = recipeData.name.replace(/\s*[\|\-]\s*(Gousto|Recipe|Recipes).*$/i, '')
+        let title = titleMatch[1].replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim()
+        // Remove common site suffixes and prefixes
+        title = title.replace(/\s*[\|\-]\s*(Gousto|Recipe|Recipes|BBC Good Food|AllRecipes|Food Network).*$/i, '')
+        title = title.replace(/^(Recipe|Recipes)[\:\s]+/i, '')
+        recipeData.name = title
+        console.log('Found title from <title> tag')
       }
     }
 
     if (!recipeData.name) {
-      // Try h1 tag
+      // Try h1 tag (first one on page)
       const h1Match = html.match(/<h1[^>]*>(.*?)<\/h1>/i)
       if (h1Match) {
         recipeData.name = h1Match[1].replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim()
+        console.log('Found title from h1 tag')
+      }
+    }
+
+    if (!recipeData.name) {
+      // Try data-recipe-title or similar attributes
+      const dataRecipeTitleMatch = html.match(/data-recipe-title="([^"]*)"/i) ||
+                                   html.match(/data-title="([^"]*)"/i)
+      if (dataRecipeTitleMatch) {
+        recipeData.name = dataRecipeTitleMatch[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim()
+        console.log('Found title from data attribute')
       }
     }
 
@@ -211,6 +332,16 @@ export default defineEventHandler(async (event) => {
       const ogDescMatch = html.match(/<meta[^>]*property="og:description"[^>]*content="([^"]*)"[^>]*>/i)
       if (ogDescMatch) {
         recipeData.description = ogDescMatch[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim()
+        console.log('Found description from og:description')
+      }
+    }
+
+    if (!recipeData.description) {
+      // Try Twitter description
+      const twitterDescMatch = html.match(/<meta[^>]*name="twitter:description"[^>]*content="([^"]*)"[^>]*>/i)
+      if (twitterDescMatch) {
+        recipeData.description = twitterDescMatch[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim()
+        console.log('Found description from twitter:description')
       }
     }
 
@@ -219,6 +350,22 @@ export default defineEventHandler(async (event) => {
       const metaDescMatch = html.match(/<meta[^>]*name="description"[^>]*content="([^"]*)"[^>]*>/i)
       if (metaDescMatch) {
         recipeData.description = metaDescMatch[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim()
+        console.log('Found description from meta description')
+      }
+    }
+
+    if (!recipeData.description) {
+      // Try to find a paragraph near the title (common recipe site pattern)
+      const descPattern = /<h1[^>]*>.*?<\/h1>\s*(?:<[^>]*>)*\s*<p[^>]*>(.*?)<\/p>/is
+      const descMatch = html.match(descPattern)
+      if (descMatch) {
+        let desc = descMatch[1].replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim()
+        // Limit description length
+        if (desc.length > 300) {
+          desc = desc.substring(0, 297) + '...'
+        }
+        recipeData.description = desc
+        console.log('Found description from paragraph near title')
       }
     }
 
