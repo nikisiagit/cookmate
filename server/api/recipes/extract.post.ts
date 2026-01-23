@@ -174,7 +174,6 @@ export default defineEventHandler(async (event) => {
             stepsCount: recipeData.steps.length,
             nutrition: { calories: recipeData.calories, fat: recipeData.fat, protein: recipeData.protein, carbs: recipeData.carbs }
           })
-        }
       } catch (e) {
         console.error('Error extracting recipe data from JSON-LD:', e)
       }
