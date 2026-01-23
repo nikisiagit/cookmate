@@ -85,6 +85,25 @@ onMounted(() => {
         <div class="flex items-center justify-end lg:flex-1 gap-1.5">
           <ClientOnly>
             <UButton
+              color="primary"
+              variant="ghost"
+              aria-label="Meal Planner"
+              class="relative"
+              to="/meal-planner"
+            >
+              <UIcon
+                name="humbleicons:calendar"
+                size="20"
+              />
+              <span
+                v-if="mealPlanList.length"
+                class="absolute inline-flex items-center justify-center w-5 h-5 text-xs font-normal text-white bg-red-500 border-2 border-white rounded-full -top-1 -right-1 dark:border-gray-900"
+              >
+                {{ mealPlanList.length }}
+              </span>
+            </UButton>
+
+            <UButton
               :icon="isDark ? 'i-heroicons-moon-20-solid' : 'i-heroicons-sun-20-solid'"
               color="gray"
               variant="ghost"
@@ -97,14 +116,12 @@ onMounted(() => {
               color="primary"
               variant="ghost"
               aria-label="Admin"
-              class="ml-2"
               to="/admin/recipes"
             />
             <UButton
               v-if="loggedIn"
               :loading="disconnect"
               icon="i-heroicons-power-20-solid"
-              class="ml-2"
               color="red"
               variant="ghost"
               @click="clearSession"
@@ -119,44 +136,6 @@ onMounted(() => {
         <NuxtPage />
       </NuxtLayout>
     </main>
-
-    <ClientOnly>
-      <div
-        class="bg-white dark:bg-neutral-900 fixed bottom-0 left-0 z-10 w-full h-12 border-t border-gray-200 dark:border-neutral-700"
-      >
-        <div class="grid h-full max-w-lg grid-cols-2 mx-auto">
-          <UButton
-            icon="heroicons-outline:home"
-            color="primary"
-            variant="ghost"
-            aria-label="Home"
-            class="inline-flex flex-col items-center justify-center"
-            to="/"
-          />
-
-          <UButton
-            color="primary"
-            variant="ghost"
-            aria-label="Meal Planner"
-            class="inline-flex flex-col items-center justify-center"
-            to="/meal-planner"
-          >
-            <span class="relative inline-block mt-1">
-              <UIcon
-                name="humbleicons:calendar"
-                size="20"
-              />
-              <div
-                v-if="mealPlanList.length"
-                class="absolute inline-flex items-center justify-center w-5 h-5 text-xs font-normal text-white bg-red-500 border-2 border-white rounded-full -top-2 -end-3 dark:border-gray-900"
-              >
-                {{ mealPlanList.length }}
-              </div>
-            </span>
-          </UButton>
-        </div>
-      </div>
-    </ClientOnly>
   </div>
 </template>
 

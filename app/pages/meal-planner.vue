@@ -134,7 +134,7 @@ useSeoMeta({
 
 <template>
   <UContainer>
-    <main class="pb-[90px]">
+    <main>
       <div class="flex items-center justify-between my-8">
         <h1 class="text-2xl font-semibold">
           Your Meal Plan

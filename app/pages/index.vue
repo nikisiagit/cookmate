@@ -259,7 +259,7 @@ useSeoMeta({
 
 <template>
   <UContainer>
-    <main class="pb-[90px]">
+    <main>
       <!-- Navigation Tabs -->
       <div class="flex justify-center gap-2 mb-6 mt-4">
         <UButton

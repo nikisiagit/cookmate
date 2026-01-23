@@ -133,7 +133,6 @@ const columns = [
 
     <main
       v-else
-      class="pb-[90px]"
     >
       <div class="flex flex-col gap-4 mb-6">
         <div class="flex items-center justify-between">

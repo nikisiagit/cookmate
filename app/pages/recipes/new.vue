@@ -426,7 +426,6 @@ const { loggedIn } = useUserSession()
     </div>
     <main
       v-else
-      class="pb-[90px]"
     >
       <h1 class="flex text-xl font-bold leading-7 text-gray-900 dark:text-white">
         Create a new recipe

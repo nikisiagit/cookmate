@@ -377,7 +377,6 @@ const isOpen = ref(false)
 
     <main
       v-else
-      class="pb-[90px]"
     >
       <div class="flex items-center gap-4 mb-6">
         <UButton
