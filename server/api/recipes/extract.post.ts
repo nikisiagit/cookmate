@@ -10,12 +10,27 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Fetch the HTML content
+    // Fetch the HTML content with more realistic headers
     const html = await $fetch<string>(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-GB,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Upgrade-Insecure-Requests': '1',
       },
     })
+
+    console.log('Fetched HTML length:', html.length)
 
     // Initialize recipe data
     let recipeData: any = {
@@ -36,17 +51,50 @@ export default defineEventHandler(async (event) => {
       steps: [],
     }
 
-    // Extract JSON-LD structured data
-    const jsonLdMatch = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/i)
-    if (jsonLdMatch) {
-      try {
-        const jsonLd = JSON.parse(jsonLdMatch[1])
-        const recipe = Array.isArray(jsonLd) ? jsonLd.find((item: any) => item['@type'] === 'Recipe') : jsonLd['@type'] === 'Recipe' ? jsonLd : null
+    // Extract JSON-LD structured data - try all script tags
+    const jsonLdMatches = html.matchAll(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi)
+    let recipe: any = null
 
-        if (recipe) {
+    for (const match of jsonLdMatches) {
+      try {
+        const jsonLd = JSON.parse(match[1])
+        console.log('Found JSON-LD type:', jsonLd['@type'] || (Array.isArray(jsonLd) ? jsonLd.map((i: any) => i['@type']).join(', ') : 'unknown'))
+
+        const foundRecipe = Array.isArray(jsonLd)
+          ? jsonLd.find((item: any) => item['@type'] === 'Recipe')
+          : jsonLd['@type'] === 'Recipe' ? jsonLd : null
+
+        if (foundRecipe) {
+          recipe = foundRecipe
+          console.log('Found recipe in JSON-LD:', foundRecipe.name || 'unnamed')
+          console.log('Recipe has ingredients:', !!foundRecipe.recipeIngredient)
+          console.log('Recipe has instructions:', !!foundRecipe.recipeInstructions)
+          console.log('Recipe has nutrition:', !!foundRecipe.nutrition)
+          break
+        }
+      } catch (e) {
+        console.error('Error parsing JSON-LD block:', e)
+      }
+    }
+
+    if (recipe) {
+      try {
           recipeData.name = recipe.name || ''
           recipeData.description = recipe.description || ''
-          recipeData.servings = parseInt(recipe.recipeYield) || 2
+
+          // Parse servings/yield - can be number, string with number, or array
+          let servings = 2
+          if (recipe.recipeYield) {
+            if (typeof recipe.recipeYield === 'number') {
+              servings = recipe.recipeYield
+            } else if (typeof recipe.recipeYield === 'string') {
+              const match = recipe.recipeYield.match(/\d+/)
+              servings = match ? parseInt(match[0]) : 2
+            } else if (Array.isArray(recipe.recipeYield)) {
+              servings = parseInt(recipe.recipeYield[0]) || 2
+            }
+          }
+          recipeData.servings = servings
 
           // Parse time (e.g., "PT30M" or "PT1H30M")
           const timeString = recipe.totalTime || recipe.cookTime || recipe.prepTime || ''
@@ -101,28 +149,86 @@ export default defineEventHandler(async (event) => {
             }
           }
 
-          // Parse nutrition
+          // Parse nutrition - handle both numeric and string values with units
           if (recipe.nutrition) {
             const nutrition = recipe.nutrition
-            recipeData.calories = parseInt(nutrition.calories) || 0
-            recipeData.fat = parseFloat(nutrition.fatContent) || 0
-            recipeData.protein = parseFloat(nutrition.proteinContent) || 0
-            recipeData.carbs = parseFloat(nutrition.carbohydrateContent) || 0
-            recipeData.sugar = parseFloat(nutrition.sugarContent) || 0
+            const parseNutrition = (value: any) => {
+              if (typeof value === 'number') return value
+              if (typeof value === 'string') {
+                const match = value.match(/[\d.]+/)
+                return match ? parseFloat(match[0]) : 0
+              }
+              return 0
+            }
+
+            recipeData.calories = parseNutrition(nutrition.calories)
+            recipeData.fat = parseNutrition(nutrition.fatContent || nutrition.fat)
+            recipeData.protein = parseNutrition(nutrition.proteinContent || nutrition.protein)
+            recipeData.carbs = parseNutrition(nutrition.carbohydrateContent || nutrition.carbohydrates || nutrition.carbs)
+            recipeData.sugar = parseNutrition(nutrition.sugarContent || nutrition.sugar)
           }
+
+          console.log('Extracted recipe data:', {
+            name: recipeData.name,
+            ingredientsCount: recipeData.ingredients.length,
+            stepsCount: recipeData.steps.length,
+            nutrition: { calories: recipeData.calories, fat: recipeData.fat, protein: recipeData.protein, carbs: recipeData.carbs }
+          })
         }
       } catch (e) {
-        console.error('Error parsing JSON-LD:', e)
+        console.error('Error extracting recipe data from JSON-LD:', e)
       }
     }
 
-    // Fallback: Extract title from <h1> tag if name not found
+    // Fallback extractions if JSON-LD didn't work
     if (!recipeData.name) {
-      const h1Match = html.match(/<h1[^>]*>(.*?)<\/h1>/i)
-      if (h1Match) {
-        recipeData.name = h1Match[1].replace(/<[^>]*>/g, '').trim()
+      // Try Open Graph title
+      const ogTitleMatch = html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]*)"[^>]*>/i)
+      if (ogTitleMatch) {
+        recipeData.name = ogTitleMatch[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim()
       }
     }
+
+    if (!recipeData.name) {
+      // Try regular title tag
+      const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i)
+      if (titleMatch) {
+        recipeData.name = titleMatch[1].replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim()
+        // Remove common site suffixes
+        recipeData.name = recipeData.name.replace(/\s*[\|\-]\s*(Gousto|Recipe|Recipes).*$/i, '')
+      }
+    }
+
+    if (!recipeData.name) {
+      // Try h1 tag
+      const h1Match = html.match(/<h1[^>]*>(.*?)<\/h1>/i)
+      if (h1Match) {
+        recipeData.name = h1Match[1].replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim()
+      }
+    }
+
+    if (!recipeData.description) {
+      // Try Open Graph description
+      const ogDescMatch = html.match(/<meta[^>]*property="og:description"[^>]*content="([^"]*)"[^>]*>/i)
+      if (ogDescMatch) {
+        recipeData.description = ogDescMatch[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim()
+      }
+    }
+
+    if (!recipeData.description) {
+      // Try meta description
+      const metaDescMatch = html.match(/<meta[^>]*name="description"[^>]*content="([^"]*)"[^>]*>/i)
+      if (metaDescMatch) {
+        recipeData.description = metaDescMatch[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim()
+      }
+    }
+
+    console.log('Final recipe data:', {
+      name: recipeData.name,
+      description: recipeData.description ? recipeData.description.substring(0, 50) + '...' : 'none',
+      ingredientsCount: recipeData.ingredients.length,
+      stepsCount: recipeData.steps.length,
+    })
 
     // Ensure we have at least minimal data
     if (!recipeData.ingredients.length) {
@@ -135,9 +241,18 @@ export default defineEventHandler(async (event) => {
     return recipeData
   } catch (error: any) {
     console.error('Error extracting recipe:', error)
+
+    // Check if it's a 403 or blocking error
+    if (error.statusCode === 403 || error.message?.includes('403')) {
+      throw createError({
+        statusCode: 403,
+        message: 'The website is blocking automated requests. Try copying and pasting the recipe details manually, or try a different recipe URL.',
+      })
+    }
+
     throw createError({
       statusCode: 500,
-      message: `Failed to extract recipe data: ${error.message}`,
+      message: `Failed to extract recipe data: ${error.message || 'Unknown error'}`,
     })
   }
 })
