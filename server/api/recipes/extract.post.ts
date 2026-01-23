@@ -277,6 +277,21 @@ export default defineEventHandler(async (event) => {
     }
 
     // Fallback extractions if JSON-LD didn't work
+    // Prioritize actual page content (h1, paragraphs) over meta tags
+
+    if (!recipeData.name) {
+      // Try h1 tag first (most likely to be the recipe title)
+      const h1Match = html.match(/<h1[^>]*>(.*?)<\/h1>/i)
+      if (h1Match) {
+        let title = h1Match[1].replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim()
+        // Only use if it looks like a recipe title (not generic site text)
+        if (title.length > 5 && !title.match(/^(recipes?|quick|easy|dinner|ideas|home|menu)$/i)) {
+          recipeData.name = title
+          console.log('Found title from h1 tag:', title)
+        }
+      }
+    }
+
     if (!recipeData.name) {
       // Try Open Graph title
       const ogTitleMatch = html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]*)"[^>]*>/i)
@@ -301,19 +316,12 @@ export default defineEventHandler(async (event) => {
       if (titleMatch) {
         let title = titleMatch[1].replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim()
         // Remove common site suffixes and prefixes
-        title = title.replace(/\s*[\|\-]\s*(Gousto|Recipe|Recipes|BBC Good Food|AllRecipes|Food Network).*$/i, '')
+        title = title.replace(/\s*[\|\-]\s*(Gousto|Recipe|Recipes|BBC Good Food|AllRecipes|Food Network|Quick|Easy|Dinner|Ideas).*$/i, '')
         title = title.replace(/^(Recipe|Recipes)[\:\s]+/i, '')
-        recipeData.name = title
-        console.log('Found title from <title> tag')
-      }
-    }
-
-    if (!recipeData.name) {
-      // Try h1 tag (first one on page)
-      const h1Match = html.match(/<h1[^>]*>(.*?)<\/h1>/i)
-      if (h1Match) {
-        recipeData.name = h1Match[1].replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim()
-        console.log('Found title from h1 tag')
+        if (title.length > 5) {
+          recipeData.name = title
+          console.log('Found title from <title> tag')
+        }
       }
     }
 
@@ -324,6 +332,41 @@ export default defineEventHandler(async (event) => {
       if (dataRecipeTitleMatch) {
         recipeData.name = dataRecipeTitleMatch[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim()
         console.log('Found title from data attribute')
+      }
+    }
+
+    if (!recipeData.description) {
+      // Try to find a paragraph near the h1 title (most common recipe pattern)
+      const h1AndDescPattern = /<h1[^>]*>.*?<\/h1>\s*(?:<[^>]*>)*\s*<p[^>]*>(.*?)<\/p>/is
+      const descMatch = html.match(h1AndDescPattern)
+      if (descMatch) {
+        let desc = descMatch[1].replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim()
+        // Only use if it's a substantial description
+        if (desc.length > 20 && desc.length < 500) {
+          // Limit description length
+          if (desc.length > 300) {
+            desc = desc.substring(0, 297) + '...'
+          }
+          recipeData.description = desc
+          console.log('Found description from paragraph near h1:', desc.substring(0, 50))
+        }
+      }
+    }
+
+    if (!recipeData.description) {
+      // Try to find first substantial paragraph in the page
+      const paragraphMatches = html.matchAll(/<p[^>]*>(.*?)<\/p>/gis)
+      for (const match of paragraphMatches) {
+        let desc = match[1].replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim()
+        // Look for substantial content that might be a description
+        if (desc.length > 30 && desc.length < 500 && !desc.match(/cookie|privacy|terms|subscribe|newsletter/i)) {
+          if (desc.length > 300) {
+            desc = desc.substring(0, 297) + '...'
+          }
+          recipeData.description = desc
+          console.log('Found description from first substantial paragraph:', desc.substring(0, 50))
+          break
+        }
       }
     }
 
@@ -354,27 +397,26 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    if (!recipeData.description) {
-      // Try to find a paragraph near the title (common recipe site pattern)
-      const descPattern = /<h1[^>]*>.*?<\/h1>\s*(?:<[^>]*>)*\s*<p[^>]*>(.*?)<\/p>/is
-      const descMatch = html.match(descPattern)
-      if (descMatch) {
-        let desc = descMatch[1].replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim()
-        // Limit description length
-        if (desc.length > 300) {
-          desc = desc.substring(0, 297) + '...'
-        }
-        recipeData.description = desc
-        console.log('Found description from paragraph near title')
-      }
-    }
-
     console.log('Final recipe data:', {
       name: recipeData.name,
       description: recipeData.description ? recipeData.description.substring(0, 50) + '...' : 'none',
       ingredientsCount: recipeData.ingredients.length,
       stepsCount: recipeData.steps.length,
+      htmlSize: html.length,
     })
+
+    // Check if we got a proper recipe page or a redirect/error page
+    if (html.length < 5000 || !recipeData.ingredients.length) {
+      console.warn('Warning: Page seems too small or missing recipe data. Might be a landing page or blocked request.')
+
+      // If the page is very small and has generic content, it's likely not the recipe page
+      if (html.length < 3000 && (!recipeData.name || recipeData.name.match(/quick|easy|dinner|ideas|home|menu|recipes/i))) {
+        throw createError({
+          statusCode: 400,
+          message: 'Unable to extract recipe - the page may be requiring JavaScript, blocking automated access, or the URL may be incorrect. Try copying the recipe details manually.',
+        })
+      }
+    }
 
     // Ensure we have at least minimal data
     if (!recipeData.ingredients.length) {
