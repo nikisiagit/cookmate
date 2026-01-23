@@ -404,14 +404,13 @@ useSeoMeta({
             </div>
           </div>
         </div>
-        <div class="relative overflow-hidden">
+        <div class="relative h-[400px] flex items-center justify-center">
           <Transition
-            name="carousel-slide"
-            mode="out-in"
+            name="carousel-flow"
           >
             <div
               :key="currentCarouselIndex"
-              class="flex justify-center items-center space-x-4"
+              class="absolute flex justify-center items-center space-x-4 w-full"
             >
               <!-- Left Blurred Card -->
               <RecipeImageBlurred
@@ -569,22 +568,36 @@ useSeoMeta({
   transform: scale(1.05);
 }
 
-/* Carousel slide transition */
-.carousel-slide-enter-active {
-  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+/* Carousel flow transition - slide with blur and fade */
+.carousel-flow-enter-active {
+  transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.carousel-slide-leave-active {
-  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-  position: absolute;
-  width: 100%;
+.carousel-flow-leave-active {
+  transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.carousel-slide-enter-from {
-  transform: translateX(100%);
+.carousel-flow-enter-from {
+  transform: translateX(-50%);
+  filter: blur(8px);
+  opacity: 0.3;
 }
 
-.carousel-slide-leave-to {
-  transform: translateX(-100%);
+.carousel-flow-enter-to {
+  transform: translateX(0);
+  filter: blur(0);
+  opacity: 1;
+}
+
+.carousel-flow-leave-from {
+  transform: translateX(0);
+  filter: blur(0);
+  opacity: 1;
+}
+
+.carousel-flow-leave-to {
+  transform: translateX(50%);
+  filter: blur(8px);
+  opacity: 0.3;
 }
 </style>
