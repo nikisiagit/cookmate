@@ -40,14 +40,23 @@ async function fetchCarouselRecipes() {
   }
 }
 
-// Get current recipe to display
-const currentCarouselRecipe = computed(() => {
-  if (carouselRecipes.value.length === 0) return dummyRecipes[0]
+// Get current set of 3 recipes to display (left, center, right)
+const displayedCarouselRecipes = computed(() => {
+  if (carouselRecipes.value.length === 0) return dummyRecipes.slice(0, 3)
 
   const recipes = carouselRecipes.value
   const index = currentCarouselIndex.value
 
-  return recipes[index % recipes.length]
+  // Get previous, current, and next recipes
+  const prevIndex = (index - 1 + recipes.length) % recipes.length
+  const currentIndex = index % recipes.length
+  const nextIndex = (index + 1) % recipes.length
+
+  return {
+    left: recipes[prevIndex],
+    center: recipes[currentIndex],
+    right: recipes[nextIndex]
+  }
 })
 
 // Start carousel rotation
@@ -401,54 +410,78 @@ useSeoMeta({
           </div>
         </div>
         <!-- Carousel -->
-        <div class="relative max-w-3xl mx-auto overflow-hidden rounded-2xl">
-          <Transition name="carousel-slide">
+        <div class="relative max-w-6xl mx-auto overflow-visible py-4">
+          <Transition name="carousel-slide" mode="out-in">
             <div
               :key="currentCarouselIndex"
-              class="relative"
+              class="flex items-center justify-center gap-4"
             >
-              <!-- Recipe Image -->
-              <NuxtImg
-                :src="currentCarouselRecipe.imageUrl"
-                :alt="currentCarouselRecipe.name"
-                class="w-full h-[500px] object-cover rounded-2xl"
-                width="800"
-                height="500"
-              />
+              <!-- Left Image (Blurred) -->
+              <div class="carousel-side-image">
+                <NuxtImg
+                  :src="displayedCarouselRecipes.left.imageUrl"
+                  :alt="displayedCarouselRecipes.left.name"
+                  class="w-full h-[350px] object-cover rounded-2xl blur-sm opacity-60 transition-all duration-700"
+                  width="400"
+                  height="350"
+                />
+              </div>
 
-              <!-- Overlay with recipe details -->
-              <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-8 rounded-b-2xl">
-                <h3 class="text-3xl font-bold text-white mb-4">
-                  {{ currentCarouselRecipe.name }}
-                </h3>
-                <div class="flex items-center gap-6 text-white">
-                  <div class="flex items-center gap-2">
-                    <UIcon
-                      name="i-heroicons-clock"
-                      size="24"
-                      class="text-primary-400"
-                    />
-                    <span class="text-lg">
-                      {{ currentCarouselRecipe.hours ? `${currentCarouselRecipe.hours}h ` : '' }}{{ currentCarouselRecipe.minutes }}m
-                    </span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <UIcon
-                      name="humbleicons:users"
-                      size="24"
-                      class="text-primary-400"
-                    />
-                    <span class="text-lg">{{ currentCarouselRecipe.servings }} servings</span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <UIcon
-                      name="i-heroicons-fire"
-                      size="24"
-                      class="text-primary-400"
-                    />
-                    <span class="text-lg capitalize">{{ currentCarouselRecipe.difficulty }}</span>
+              <!-- Center Image (Focused) -->
+              <div class="carousel-center-image relative flex-shrink-0">
+                <NuxtImg
+                  :src="displayedCarouselRecipes.center.imageUrl"
+                  :alt="displayedCarouselRecipes.center.name"
+                  class="w-full h-[400px] object-cover rounded-2xl shadow-2xl"
+                  width="600"
+                  height="400"
+                />
+
+                <!-- Overlay with recipe details -->
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-6 rounded-b-2xl">
+                  <h3 class="text-2xl font-bold text-white mb-3">
+                    {{ displayedCarouselRecipes.center.name }}
+                  </h3>
+                  <div class="flex items-center gap-4 text-white text-sm">
+                    <div class="flex items-center gap-2">
+                      <UIcon
+                        name="i-heroicons-clock"
+                        size="20"
+                        class="text-green-400"
+                      />
+                      <span>
+                        {{ displayedCarouselRecipes.center.hours ? `${displayedCarouselRecipes.center.hours}h ` : '' }}{{ displayedCarouselRecipes.center.minutes }}m
+                      </span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <UIcon
+                        name="humbleicons:users"
+                        size="20"
+                        class="text-green-400"
+                      />
+                      <span>{{ displayedCarouselRecipes.center.servings }} servings</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <UIcon
+                        name="i-heroicons-fire"
+                        size="20"
+                        class="text-green-400"
+                      />
+                      <span class="capitalize">{{ displayedCarouselRecipes.center.difficulty }}</span>
+                    </div>
                   </div>
                 </div>
+              </div>
+
+              <!-- Right Image (Blurred) -->
+              <div class="carousel-side-image">
+                <NuxtImg
+                  :src="displayedCarouselRecipes.right.imageUrl"
+                  :alt="displayedCarouselRecipes.right.name"
+                  class="w-full h-[350px] object-cover rounded-2xl blur-sm opacity-60 transition-all duration-700"
+                  width="400"
+                  height="350"
+                />
               </div>
             </div>
           </Transition>
@@ -589,20 +622,13 @@ useSeoMeta({
 }
 
 /* Carousel slide transition */
-.carousel-slide-enter-active {
-  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s ease;
-  position: absolute;
-  width: 100%;
-}
-
+.carousel-slide-enter-active,
 .carousel-slide-leave-active {
-  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s ease;
-  position: absolute;
-  width: 100%;
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .carousel-slide-enter-from {
-  transform: translateX(100%);
+  transform: translateX(-30%);
   opacity: 0;
 }
 
@@ -617,7 +643,29 @@ useSeoMeta({
 }
 
 .carousel-slide-leave-to {
-  transform: translateX(-100%);
+  transform: translateX(30%);
   opacity: 0;
+}
+
+/* Carousel image sizing */
+.carousel-side-image {
+  width: 300px;
+  flex-shrink: 0;
+}
+
+.carousel-center-image {
+  width: 550px;
+  max-width: 550px;
+}
+
+@media (max-width: 1024px) {
+  .carousel-side-image {
+    display: none;
+  }
+
+  .carousel-center-image {
+    width: 100%;
+    max-width: 600px;
+  }
 }
 </style>
