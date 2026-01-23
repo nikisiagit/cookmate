@@ -3,6 +3,10 @@ import { useStorage } from '@vueuse/core'
 import type { Recipe } from '~~/types/recipes'
 
 const dummyRecipes = recipesDummyData()
+const carouselRecipes = ref<Recipe[]>([])
+const currentCarouselIndex = ref(0)
+const isLoadingCarousel = ref(false)
+let carouselInterval: NodeJS.Timeout | null = null
 
 const mealAmount = ref(1)
 const servingSize = ref(2)
@@ -14,6 +18,58 @@ interface MealPlanItem {
   customServings: number
 }
 const mealPlanList = useStorage<MealPlanItem[]>('meal-plan-list', [])
+
+// Fetch recipes for carousel
+async function fetchCarouselRecipes() {
+  isLoadingCarousel.value = true
+  try {
+    const data = await $fetch<Recipe[]>('/api/recipes', {
+      query: { limit: 12 }
+    })
+    if (data && data.length > 0) {
+      carouselRecipes.value = data
+    } else {
+      // Fallback to dummy recipes if no recipes in database
+      carouselRecipes.value = dummyRecipes
+    }
+  } catch (error) {
+    console.error('Error fetching carousel recipes:', error)
+    carouselRecipes.value = dummyRecipes
+  } finally {
+    isLoadingCarousel.value = false
+  }
+}
+
+// Get current set of 3 recipes to display
+const displayedCarouselRecipes = computed(() => {
+  if (carouselRecipes.value.length === 0) return dummyRecipes
+
+  const recipes = carouselRecipes.value
+  const index = currentCarouselIndex.value
+
+  return [
+    recipes[index % recipes.length],
+    recipes[(index + 1) % recipes.length],
+    recipes[(index + 2) % recipes.length],
+  ]
+})
+
+// Start carousel rotation
+function startCarousel() {
+  if (carouselInterval) return
+
+  carouselInterval = setInterval(() => {
+    currentCarouselIndex.value = (currentCarouselIndex.value + 1) % carouselRecipes.value.length
+  }, 3000) // Rotate every 3 seconds
+}
+
+// Stop carousel rotation
+function stopCarousel() {
+  if (carouselInterval) {
+    clearInterval(carouselInterval)
+    carouselInterval = null
+  }
+}
 
 // Migrate old format to new format (one-time migration)
 onMounted(() => {
@@ -29,6 +85,16 @@ onMounted(() => {
       }))
     }
   }
+
+  // Fetch recipes and start carousel
+  fetchCarouselRecipes().then(() => {
+    startCarousel()
+  })
+})
+
+// Cleanup on unmount
+onUnmounted(() => {
+  stopCarousel()
 })
 
 // Track saved recipe IDs
@@ -338,25 +404,46 @@ useSeoMeta({
             </div>
           </div>
         </div>
-        <div class="flex justify-center items-center space-x-4">
-          <!-- Left Blurred Card -->
-          <RecipeImageBlurred
-            v-if="dummyRecipes[0]"
-            :image-url="dummyRecipes[0].imageUrl"
-            :name="dummyRecipes[0].name"
-          />
+        <div class="relative">
+          <Transition
+            name="carousel-fade"
+            mode="out-in"
+          >
+            <div
+              :key="currentCarouselIndex"
+              class="flex justify-center items-center space-x-4"
+            >
+              <!-- Left Blurred Card -->
+              <RecipeImageBlurred
+                v-if="displayedCarouselRecipes[0]"
+                :image-url="displayedCarouselRecipes[0].imageUrl"
+                :name="displayedCarouselRecipes[0].name"
+              />
 
-          <RecipeCard
-            v-if="dummyRecipes[1]"
-            :recipe="dummyRecipes[1]"
-          />
+              <RecipeCard
+                v-if="displayedCarouselRecipes[1]"
+                :recipe="displayedCarouselRecipes[1]"
+              />
 
-          <!-- Right Blurred Card -->
-          <RecipeImageBlurred
-            v-if="dummyRecipes[2]"
-            :image-url="dummyRecipes[2].imageUrl"
-            :name="dummyRecipes[2].name"
-          />
+              <!-- Right Blurred Card -->
+              <RecipeImageBlurred
+                v-if="displayedCarouselRecipes[2]"
+                :image-url="displayedCarouselRecipes[2].imageUrl"
+                :name="displayedCarouselRecipes[2].name"
+              />
+            </div>
+          </Transition>
+
+          <!-- Carousel indicators -->
+          <div class="flex justify-center gap-2 mt-4">
+            <button
+              v-for="(_, index) in carouselRecipes"
+              :key="index"
+              class="w-2 h-2 rounded-full transition-all"
+              :class="index === currentCarouselIndex ? 'bg-primary w-6' : 'bg-gray-300 dark:bg-gray-600'"
+              @click="currentCarouselIndex = index"
+            />
+          </div>
         </div>
 
         <div class="flex justify-center">
@@ -491,5 +578,16 @@ useSeoMeta({
 .generate-btn:hover {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   transform: scale(1.05);
+}
+
+/* Carousel fade transition */
+.carousel-fade-enter-active,
+.carousel-fade-leave-active {
+  transition: opacity 0.5s ease-in-out;
+}
+
+.carousel-fade-enter-from,
+.carousel-fade-leave-to {
+  opacity: 0;
 }
 </style>
