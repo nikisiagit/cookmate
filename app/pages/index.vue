@@ -433,17 +433,6 @@ useSeoMeta({
               />
             </div>
           </Transition>
-
-          <!-- Carousel indicators -->
-          <div class="flex justify-center gap-2 mt-4">
-            <button
-              v-for="(_, index) in carouselRecipes"
-              :key="index"
-              class="w-2 h-2 rounded-full transition-all"
-              :class="index === currentCarouselIndex ? 'bg-primary w-6' : 'bg-gray-300 dark:bg-gray-600'"
-              @click="currentCarouselIndex = index"
-            />
-          </div>
         </div>
 
         <div class="flex justify-center">
@@ -581,9 +570,12 @@ useSeoMeta({
 }
 
 /* Carousel fade transition */
-.carousel-fade-enter-active,
+.carousel-fade-enter-active {
+  transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .carousel-fade-leave-active {
-  transition: opacity 0.5s ease-in-out;
+  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .carousel-fade-enter-from,

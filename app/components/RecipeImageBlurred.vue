@@ -7,9 +7,9 @@ defineProps<{
 
 <template>
   <!-- TODO: change to NuxtImg -->
-  <div class="recipe-card-blur max-w-xs rounded-lg overflow-hidden">
+  <div class="recipe-card-blur max-w-xs rounded-xl overflow-hidden">
     <NuxtImg
-      class="w-full h-48 object-cover opacity-50 blur-sm"
+      class="w-full h-48 object-cover opacity-50 blur-sm rounded-xl"
       :src="imageUrl"
       :alt="name"
     />
