@@ -112,6 +112,14 @@ onMounted(() => {
             />
 
             <UButton
+              icon="i-heroicons-document-text"
+              color="gray"
+              variant="ghost"
+              aria-label="Changelog"
+              to="/changelog"
+            />
+
+            <UButton
               icon="streamline:food-kitchenware-chef-toque-hat-cook-gear-chef-cooking-nutrition-tools-clothes-hat-clothing-food"
               color="primary"
               variant="ghost"
