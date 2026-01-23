@@ -42,7 +42,14 @@ async function fetchCarouselRecipes() {
 
 // Get current set of 3 recipes to display (left, center, right)
 const displayedCarouselRecipes = computed(() => {
-  if (carouselRecipes.value.length === 0) return dummyRecipes.slice(0, 3)
+  if (carouselRecipes.value.length === 0) {
+    const dummy = dummyRecipes
+    return {
+      left: dummy[0] || dummyRecipes[0],
+      center: dummy[1] || dummyRecipes[1],
+      right: dummy[2] || dummyRecipes[2]
+    }
+  }
 
   const recipes = carouselRecipes.value
   const index = currentCarouselIndex.value
