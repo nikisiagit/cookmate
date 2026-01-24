@@ -371,128 +371,31 @@ useSeoMeta({
         <h1 class="text-center text-2xl font-semibold mt-8 mb-6">
           Let fortune decide your meals this week
         </h1>
-
-        <!-- Compact selector card -->
-        <div class="max-w-md mx-auto bg-gray-50 dark:bg-neutral-800 rounded-xl p-6 mb-6">
-          <div class="flex items-center justify-between gap-6">
-            <div class="flex-1">
-              <h2 class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 text-center">
-                Meals
-              </h2>
-              <div class="flex items-center justify-center gap-3">
-                <UButton
-                  icon="heroicons-solid:minus"
-                  size="sm"
-                  @click.prevent="mealAmount > 1 && mealAmount--"
-                />
-                <span class="text-3xl font-bold text-primary min-w-[3rem] text-center">{{ mealAmount }}</span>
-                <UButton
-                  icon="heroicons-solid:plus"
-                  size="sm"
-                  @click.prevent="mealAmount < 7 && mealAmount++"
-                />
-              </div>
+        <h2 class="text-center text-lg font-semibold mt-8">
+          How many meals would you like ?
+        </h2>
+        <AmountMealSelector
+          class="mb-8"
+          @update:meal-amount="setMealAmount"
+        />
+        <UCarousel
+          v-if="dummyRecipes.length"
+          :items="dummyRecipes"
+          :ui="{ item: 'basis-full sm:basis-1/2 md:basis-1/3' }"
+          class="rounded-lg overflow-hidden mx-auto max-w-5xl"
+          arrows
+          indicators
+          :autoplay="{ delay: 3000 }"
+        >
+          <template #default="{ item }">
+            <div class="p-2 w-full">
+               <RecipeCard
+                :recipe="item"
+                :include-link="false"
+              />
             </div>
-
-            <div class="w-px h-12 bg-gray-300 dark:bg-gray-600" />
-
-            <div class="flex-1">
-              <h2 class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 text-center">
-                Servings
-              </h2>
-              <div class="flex items-center justify-center gap-3">
-                <UButton
-                  icon="heroicons-solid:minus"
-                  size="sm"
-                  @click.prevent="servingSize > 1 && servingSize--"
-                />
-                <span class="text-3xl font-bold text-primary min-w-[3rem] text-center">{{ servingSize }}</span>
-                <UButton
-                  icon="heroicons-solid:plus"
-                  size="sm"
-                  @click.prevent="servingSize < 12 && servingSize++"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Carousel -->
-        <div class="relative max-w-6xl mx-auto overflow-visible py-4">
-          <Transition name="carousel-slide" mode="out-in">
-            <div
-              :key="currentCarouselIndex"
-              class="flex items-center justify-center gap-4"
-            >
-              <!-- Left Image (Blurred) -->
-              <div class="carousel-side-image">
-                <NuxtImg
-                  :src="displayedCarouselRecipes.left.imageUrl"
-                  :alt="displayedCarouselRecipes.left.name"
-                  class="w-full h-[350px] object-cover rounded-2xl blur-sm opacity-60 transition-all duration-700"
-                  width="400"
-                  height="350"
-                />
-              </div>
-
-              <!-- Center Image (Focused) -->
-              <div class="carousel-center-image relative flex-shrink-0">
-                <NuxtImg
-                  :src="displayedCarouselRecipes.center.imageUrl"
-                  :alt="displayedCarouselRecipes.center.name"
-                  class="w-full h-[400px] object-cover rounded-2xl shadow-2xl"
-                  width="600"
-                  height="400"
-                />
-
-                <!-- Overlay with recipe details -->
-                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-6 rounded-b-2xl">
-                  <h3 class="text-2xl font-bold text-white mb-3">
-                    {{ displayedCarouselRecipes.center.name }}
-                  </h3>
-                  <div class="flex items-center gap-4 text-white text-sm">
-                    <div class="flex items-center gap-2">
-                      <UIcon
-                        name="i-heroicons-clock"
-                        size="20"
-                        class="text-green-400"
-                      />
-                      <span>
-                        {{ displayedCarouselRecipes.center.hours ? `${displayedCarouselRecipes.center.hours}h ` : '' }}{{ displayedCarouselRecipes.center.minutes }}m
-                      </span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <UIcon
-                        name="humbleicons:users"
-                        size="20"
-                        class="text-green-400"
-                      />
-                      <span>{{ displayedCarouselRecipes.center.servings }} servings</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <UIcon
-                        name="i-heroicons-fire"
-                        size="20"
-                        class="text-green-400"
-                      />
-                      <span class="capitalize">{{ displayedCarouselRecipes.center.difficulty }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Right Image (Blurred) -->
-              <div class="carousel-side-image">
-                <NuxtImg
-                  :src="displayedCarouselRecipes.right.imageUrl"
-                  :alt="displayedCarouselRecipes.right.name"
-                  class="w-full h-[350px] object-cover rounded-2xl blur-sm opacity-60 transition-all duration-700"
-                  width="400"
-                  height="350"
-                />
-              </div>
-            </div>
-          </Transition>
-        </div>
+          </template>
+        </UCarousel>
 
         <div class="flex justify-center">
           <UButton
