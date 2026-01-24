@@ -18,7 +18,8 @@ const changelog: ChangelogEntry[] = [
       'Button shows different states: "Add to Plan" or "In Plan"',
       'Toast notifications confirm when recipes are added or removed',
       'Meal plan syncs across all pages using localStorage',
-      'Mobile responsive buttons (text hidden on small screens)',
+      'Improved responsive layout - buttons stack below title on mobile',
+      'Buttons now fit properly on small screens with adjusted sizing',
     ]
   },
   {
