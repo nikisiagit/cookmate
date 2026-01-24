@@ -7,8 +7,31 @@ interface MealPlanItem {
   recipe: any
   customServings: number
 }
-const mealPlanList = useStorage<MealPlanItem[]>('meal-plan-list', [])
+
+// Initialize meal plan list (client-side only)
+const mealPlanList = ref<MealPlanItem[]>([])
 const disconnect = ref(false)
+
+onMounted(() => {
+  // Load from localStorage on client side only
+  if (process.client) {
+    const stored = localStorage.getItem('meal-plan-list')
+    if (stored) {
+      try {
+        mealPlanList.value = JSON.parse(stored)
+      } catch (e) {
+        console.error('Failed to parse meal plan list:', e)
+      }
+    }
+  }
+})
+
+// Watch for changes and save to localStorage
+watch(mealPlanList, (newValue) => {
+  if (process.client) {
+    localStorage.setItem('meal-plan-list', JSON.stringify(newValue))
+  }
+}, { deep: true })
 
 const isDark = computed({
   get() {

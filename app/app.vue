@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useStorage } from '@vueuse/core'
 import type { Recipe } from '~~/types/recipes'
 
 // Store recipes with their custom serving sizes
@@ -8,21 +7,34 @@ interface MealPlanItem {
   customServings: number
 }
 
-const mealPlanList = useStorage<MealPlanItem[]>('meal-plan-list', [])
+// Initialize meal plan list (client-side only)
+const mealPlanList = ref<MealPlanItem[]>([])
 
 // Animation for pot icon on first load
 const isAnimating = ref(false)
 
 onMounted(() => {
-  // Migrate old format to new format (one-time migration)
-  if (mealPlanList.value.length > 0) {
-    const firstItem = mealPlanList.value[0]
-    if (firstItem && !('recipe' in firstItem) && 'id' in firstItem) {
-      const oldData = mealPlanList.value as unknown as Recipe[]
-      mealPlanList.value = oldData.map((recipe: Recipe) => ({
-        recipe,
-        customServings: recipe.servings || 2
-      }))
+  // Load from localStorage on client side only
+  if (process.client) {
+    const stored = localStorage.getItem('meal-plan-list')
+    if (stored) {
+      try {
+        mealPlanList.value = JSON.parse(stored)
+      } catch (e) {
+        console.error('Failed to parse meal plan list:', e)
+      }
+    }
+
+    // Migrate old format to new format (one-time migration)
+    if (mealPlanList.value.length > 0) {
+      const firstItem = mealPlanList.value[0]
+      if (firstItem && !('recipe' in firstItem) && 'id' in firstItem) {
+        const oldData = mealPlanList.value as unknown as Recipe[]
+        mealPlanList.value = oldData.map((recipe: Recipe) => ({
+          recipe,
+          customServings: recipe.servings || 2
+        }))
+      }
     }
   }
 
@@ -34,6 +46,13 @@ onMounted(() => {
     isAnimating.value = false
   }, 2000)
 })
+
+// Watch for changes and save to localStorage
+watch(mealPlanList, (newValue) => {
+  if (process.client) {
+    localStorage.setItem('meal-plan-list', JSON.stringify(newValue))
+  }
+}, { deep: true })
 </script>
 
 <template>

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useStorage } from '@vueuse/core'
 import type { Recipe } from '~~/types/recipes'
 
 const dummyRecipes = recipesDummyData()
@@ -17,7 +16,9 @@ interface MealPlanItem {
   recipe: Recipe
   customServings: number
 }
-const mealPlanList = useStorage<MealPlanItem[]>('meal-plan-list', [])
+
+// Initialize meal plan list (client-side only)
+const mealPlanList = ref<MealPlanItem[]>([])
 
 // Fetch recipes for carousel
 async function fetchCarouselRecipes() {
@@ -83,18 +84,28 @@ function stopCarousel() {
   }
 }
 
-// Migrate old format to new format (one-time migration)
 onMounted(() => {
-  if (mealPlanList.value.length > 0) {
-    // Check if we have old format (recipes directly instead of MealPlanItem)
-    const firstItem = mealPlanList.value[0]
-    if (firstItem && !('recipe' in firstItem) && 'id' in firstItem) {
-      // Old format detected, migrate to new format
-      const oldData = mealPlanList.value as unknown as Recipe[]
-      mealPlanList.value = oldData.map(recipe => ({
-        recipe,
-        customServings: recipe.servings || 2
-      }))
+  // Load from localStorage on client side only
+  if (process.client) {
+    const stored = localStorage.getItem('meal-plan-list')
+    if (stored) {
+      try {
+        mealPlanList.value = JSON.parse(stored)
+      } catch (e) {
+        console.error('Failed to parse meal plan list:', e)
+      }
+    }
+
+    // Migrate old format to new format (one-time migration)
+    if (mealPlanList.value.length > 0) {
+      const firstItem = mealPlanList.value[0]
+      if (firstItem && !('recipe' in firstItem) && 'id' in firstItem) {
+        const oldData = mealPlanList.value as unknown as Recipe[]
+        mealPlanList.value = oldData.map(recipe => ({
+          recipe,
+          customServings: recipe.servings || 2
+        }))
+      }
     }
   }
 
@@ -103,6 +114,13 @@ onMounted(() => {
     startCarousel()
   })
 })
+
+// Watch for changes and save to localStorage
+watch(mealPlanList, (newValue) => {
+  if (process.client) {
+    localStorage.setItem('meal-plan-list', JSON.stringify(newValue))
+  }
+}, { deep: true })
 
 // Cleanup on unmount
 onUnmounted(() => {
