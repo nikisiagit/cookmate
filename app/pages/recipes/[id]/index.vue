@@ -1,10 +1,18 @@
 <script setup lang="ts">
+import { useStorage } from '@vueuse/core'
 import type { Recipe } from '~~/types/recipes'
 
 const route = useRoute()
 const recipe = ref<Recipe>()
 
 const isLoading = ref(false)
+
+// Store recipes with their custom serving sizes
+interface MealPlanItem {
+  recipe: Recipe
+  customServings: number
+}
+const mealPlanList = useStorage<MealPlanItem[]>('meal-plan-list', [])
 
 watchEffect(async () => {
   isLoading.value = true
@@ -36,6 +44,45 @@ watch(() => recipe.value, (newRecipe) => {
     customServingSize.value = newRecipe.servings
   }
 }, { immediate: true })
+
+// Check if recipe is in meal plan
+const isInMealPlan = computed(() => {
+  if (!recipe.value) return false
+  return mealPlanList.value.some(item => item.recipe.id === recipe.value?.id)
+})
+
+// Add recipe to meal plan
+function addToMealPlan() {
+  if (!recipe.value) return
+
+  if (!isInMealPlan.value) {
+    mealPlanList.value.push({
+      recipe: recipe.value,
+      customServings: customServingSize.value
+    })
+
+    const toast = useToast()
+    toast.add({
+      title: 'Added to Meal Plan!',
+      description: `${recipe.value.name} has been added to your meal plan.`,
+      color: 'green'
+    })
+  }
+}
+
+// Remove recipe from meal plan
+function removeFromMealPlan() {
+  if (!recipe.value) return
+
+  mealPlanList.value = mealPlanList.value.filter(item => item.recipe.id !== recipe.value?.id)
+
+  const toast = useToast()
+  toast.add({
+    title: 'Removed from Meal Plan',
+    description: `${recipe.value.name} has been removed from your meal plan.`,
+    color: 'orange'
+  })
+}
 
 // Measurement conversion functions
 function convertVolume(qty: number, unit: string, toSystem: 'metric' | 'imperial'): { qty: number, unit: string } {
@@ -216,19 +263,39 @@ function convertToRecipeFraction(value: number): string {
             <div class="w-full grid grid-cols-1 sm:grid-cols-2 sm:grid-rows-1 lg:gap-16">
               <div class="col-start-1 row-start-1 flex items-center">
                 <div>
-                  <div class="flex justify-between items-start w-full gap-4">
+                  <div class="flex justify-between items-start w-full gap-2 sm:gap-4">
                     <h1 class="text-3xl md:text-5xl leading-tight font-bold text-primary flex-1">
                       {{ recipe.name }}
                     </h1>
-                    <UButton
-                      :to="`/recipes/${recipe.id}/cook`"
-                      icon="i-heroicons-fire"
-                      size="lg"
-                      color="primary"
-                      class="flex-shrink-0"
-                    >
-                      Cook Mode
-                    </UButton>
+                    <div class="flex gap-2 flex-shrink-0">
+                      <UButton
+                        v-if="!isInMealPlan"
+                        icon="i-heroicons-plus-circle"
+                        size="lg"
+                        color="green"
+                        @click="addToMealPlan"
+                      >
+                        <span class="hidden sm:inline">Add to Plan</span>
+                      </UButton>
+                      <UButton
+                        v-else
+                        icon="i-heroicons-check-circle"
+                        size="lg"
+                        color="gray"
+                        variant="soft"
+                        @click="removeFromMealPlan"
+                      >
+                        <span class="hidden sm:inline">In Plan</span>
+                      </UButton>
+                      <UButton
+                        :to="`/recipes/${recipe.id}/cook`"
+                        icon="i-heroicons-fire"
+                        size="lg"
+                        color="primary"
+                      >
+                        <span class="hidden sm:inline">Cook Mode</span>
+                      </UButton>
+                    </div>
                   </div>
 
                   <p class="recipe-description text-lg md:text-lg lg:text-lg leading-normal my-4 sm:mb-6">
