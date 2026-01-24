@@ -301,8 +301,10 @@ async function fileSelection(event: Event) {
 
     imageToUpload.value = compressedImage
 
-    // Automatically upload the image
-    await uploadImage()
+    // Automatically upload the image (client-side only)
+    if (process.client) {
+      await uploadImage()
+    }
   }
 }
 
