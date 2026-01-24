@@ -8,22 +8,6 @@ interface MealPlanItem {
   customServings: number
 }
 
-const colorMode = useColorMode()
-const isDark = computed(() => colorMode.value === 'dark')
-
-const onToggleColorMode = () => {
-  colorMode.value === 'light' ? colorMode.preference = 'dark' : colorMode.preference = 'light'
-}
-
-const disconnect = ref(false)
-const { loggedIn, clear } = useUserSession()
-
-async function clearSession() {
-  disconnect.value = true
-
-  await clear().finally(() => disconnect.value = false)
-}
-
 const mealPlanList = useStorage<MealPlanItem[]>('meal-plan-list', [])
 
 // Animation for pot icon on first load
@@ -83,58 +67,7 @@ onMounted(() => {
         </div>
 
         <div class="flex items-center justify-end lg:flex-1 gap-1.5">
-          <ClientOnly>
-            <UButton
-              color="primary"
-              variant="ghost"
-              aria-label="Meal Planner"
-              class="relative"
-              to="/meal-planner"
-            >
-              <UIcon
-                name="humbleicons:calendar"
-                size="20"
-              />
-              <span
-                v-if="mealPlanList.length"
-                class="absolute inline-flex items-center justify-center w-5 h-5 text-xs font-normal text-white bg-red-500 border-2 border-white rounded-full -top-1 -right-1 dark:border-gray-900"
-              >
-                {{ mealPlanList.length }}
-              </span>
-            </UButton>
-
-            <UButton
-              :icon="isDark ? 'i-heroicons-moon-20-solid' : 'i-heroicons-sun-20-solid'"
-              color="gray"
-              variant="ghost"
-              aria-label="Theme"
-              @click="onToggleColorMode"
-            />
-
-            <UButton
-              icon="i-heroicons-document-text"
-              color="gray"
-              variant="ghost"
-              aria-label="Changelog"
-              to="/changelog"
-            />
-
-            <UButton
-              icon="streamline:food-kitchenware-chef-toque-hat-cook-gear-chef-cooking-nutrition-tools-clothes-hat-clothing-food"
-              color="primary"
-              variant="ghost"
-              aria-label="Admin"
-              to="/admin/recipes"
-            />
-            <UButton
-              v-if="loggedIn"
-              :loading="disconnect"
-              icon="i-heroicons-power-20-solid"
-              color="red"
-              variant="ghost"
-              @click="clearSession"
-            />
-          </ClientOnly>
+          <ProfileDropdown />
         </div>
       </div>
     </header>

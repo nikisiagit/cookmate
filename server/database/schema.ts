@@ -1,5 +1,16 @@
 import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core'
 
+export const user = sqliteTable('user', {
+  id: integer('id').primaryKey(),
+  email: text('email').unique(),
+  nickname: text('nickname').notNull(),
+  avatarUrl: text('avatar_url'),
+  provider: text('provider').notNull(), // 'google', 'apple', 'password'
+  providerId: text('provider_id'), // OAuth provider user ID
+  role: text('role').notNull().default('user'), // 'user' or 'admin'
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+})
+
 export const recipe = sqliteTable('recipe', {
   id: integer('id').primaryKey(),
   name: text('name').notNull(),

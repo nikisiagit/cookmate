@@ -1,7 +1,13 @@
 export default defineNuxtRouteMiddleware(async (to, from) => {
-  const { loggedIn } = useUserSession()
+  const { loggedIn, user } = useUserSession()
 
+  // Check if user is logged in
   if (!loggedIn.value) {
-    return
+    return navigateTo('/')
+  }
+
+  // Check if user has admin role
+  if (user.value?.role !== 'admin') {
+    return navigateTo('/')
   }
 })
