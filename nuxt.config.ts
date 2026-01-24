@@ -37,6 +37,12 @@ export default defineNuxtConfig({
       inline: [],
       external: ['prompts', '@nuxt/devtools', '@nuxt/devtools-wizard'],
     },
+    rollupConfig: {
+      external: ['prompts'],
+    },
+    replace: {
+      'import { stdin, stdout } from "node:process"': 'const stdin = null; const stdout = null',
+    },
   },
   colorMode: {
     preference: 'system', // default value of $colorMode.preference
