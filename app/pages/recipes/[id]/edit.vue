@@ -209,7 +209,7 @@ const dietOptions = [
 const imageToUpload = ref()
 const uploadingImg = ref(false)
 
-async function uploadImage(e: Event) {
+async function uploadImage(e?: Event) {
   if (!imageToUpload.value) {
     return
   }
@@ -246,6 +246,9 @@ async function fileSelection(event: Event) {
     }
 
     imageToUpload.value = compressedImage
+
+    // Automatically upload the image
+    await uploadImage()
   }
 }
 
