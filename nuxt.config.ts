@@ -26,23 +26,7 @@ export default defineNuxtConfig({
     blob: true,
   },
   nitro: {
-    preset: 'cloudflare_module',
-    cloudflare: {
-      wrangler: {
-        compatibility_date: '2024-11-01',
-        compatibility_flags: ['nodejs_compat'],
-      },
-    },
-    externals: {
-      inline: [],
-      external: ['prompts', '@nuxt/devtools', '@nuxt/devtools-wizard'],
-    },
-    rollupConfig: {
-      external: ['prompts'],
-    },
-    replace: {
-      'import { stdin, stdout } from "node:process"': 'const stdin = null; const stdout = null',
-    },
+    preset: 'cloudflare-pages',
   },
   colorMode: {
     preference: 'system', // default value of $colorMode.preference
