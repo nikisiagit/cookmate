@@ -12,6 +12,16 @@ interface ChangelogEntry {
 
 const changelog: ChangelogEntry[] = [
   {
+    date: '2026-01-24',
+    changes: [
+      'Added ability to add recipes to meal plan from recipe detail page',
+      'Button shows different states: "Add to Plan" or "In Plan"',
+      'Toast notifications confirm when recipes are added or removed',
+      'Meal plan syncs across all pages using localStorage',
+      'Mobile responsive buttons (text hidden on small screens)',
+    ]
+  },
+  {
     date: '2026-01-23',
     changes: [
       'Fixed carousel 500 error caused by array/object type mismatch',
