@@ -286,37 +286,37 @@ function convertToRecipeFraction(value: number): string {
             <div class="w-full grid grid-cols-1 sm:grid-cols-2 sm:grid-rows-1 lg:gap-16">
               <div class="col-start-1 row-start-1 flex items-center">
                 <div>
-                  <div class="flex justify-between items-start w-full gap-2 sm:gap-4">
-                    <h1 class="text-3xl md:text-5xl leading-tight font-bold text-primary flex-1">
+                  <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start w-full gap-3 sm:gap-4">
+                    <h1 class="text-2xl sm:text-3xl md:text-5xl leading-tight font-bold text-primary flex-1">
                       {{ recipe.name }}
                     </h1>
                     <div class="flex gap-2 flex-shrink-0">
                       <UButton
                         v-if="!isInMealPlan"
                         icon="i-heroicons-plus-circle"
-                        size="lg"
+                        size="md"
                         color="green"
                         @click="addToMealPlan"
                       >
-                        <span class="hidden sm:inline">Add to Plan</span>
+                        <span class="hidden xs:inline">Add to Plan</span>
                       </UButton>
                       <UButton
                         v-else
                         icon="i-heroicons-check-circle"
-                        size="lg"
+                        size="md"
                         color="gray"
                         variant="soft"
                         @click="removeFromMealPlan"
                       >
-                        <span class="hidden sm:inline">In Plan</span>
+                        <span class="hidden xs:inline">In Plan</span>
                       </UButton>
                       <UButton
                         :to="`/recipes/${recipe.id}/cook`"
                         icon="i-heroicons-fire"
-                        size="lg"
+                        size="md"
                         color="primary"
                       >
-                        <span class="hidden sm:inline">Cook Mode</span>
+                        <span class="hidden xs:inline">Cook Mode</span>
                       </UButton>
                     </div>
                   </div>
