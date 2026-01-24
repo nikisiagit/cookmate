@@ -121,7 +121,7 @@ export default defineNuxtConfig({
     },
     registerType: 'autoUpdate',
   },
-  devtools: { enabled: true },
+  devtools: { enabled: process.env.NODE_ENV === 'development' },
   vite: {
     optimizeDeps: {
       exclude: ['drizzle-kit'],
