@@ -33,6 +33,10 @@ export default defineNuxtConfig({
         compatibility_flags: ['nodejs_compat'],
       },
     },
+    externals: {
+      inline: [],
+      external: ['prompts', '@nuxt/devtools', '@nuxt/devtools-wizard'],
+    },
   },
   colorMode: {
     preference: 'system', // default value of $colorMode.preference
