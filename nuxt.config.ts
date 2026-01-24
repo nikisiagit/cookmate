@@ -130,5 +130,8 @@ export default defineNuxtConfig({
     optimizeDeps: {
       exclude: ['drizzle-kit'],
     },
+    ssr: {
+      external: ['prompts'],
+    },
   },
 })
