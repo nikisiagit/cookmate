@@ -529,15 +529,15 @@ useSeoMeta({
           </template>
         </div>
 
-        <!-- Shopping List Button -->
+        <!-- Meal Plan Button -->
         <div v-if="mealPlanList.length > 0" class="flex justify-center mt-8">
           <UButton
-            icon="heroicons:shopping-cart-20-solid"
+            icon="heroicons:calendar-20-solid"
             size="lg"
             color="primary"
-            @click="showShoppingList = true"
+            to="/meal-planner"
           >
-            View Shopping List ({{ shoppingList.length }} items)
+            Take me to my Meal Plan
           </UButton>
         </div>
       </template>
