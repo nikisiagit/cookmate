@@ -141,26 +141,24 @@ useSeoMeta({
           class="mb-8"
           @update:meal-amount="setMealAmount"
         />
-        <div class="flex justify-center items-center space-x-4">
-          <!-- Left Blurred Card -->
-          <RecipeImageBlurred
-            v-if="dummyRecipes[0]"
-            :image-url="dummyRecipes[0].imageUrl"
-            :name="dummyRecipes[0].name"
-          />
-
-          <RecipeCard
-            v-if="dummyRecipes[1]"
-            :recipe="dummyRecipes[1]"
-          />
-
-          <!-- Right Blurred Card -->
-          <RecipeImageBlurred
-            v-if="dummyRecipes[2]"
-            :image-url="dummyRecipes[2].imageUrl"
-            :name="dummyRecipes[2].name"
-          />
-        </div>
+        <UCarousel
+          v-if="dummyRecipes.length"
+          :items="dummyRecipes"
+          :ui="{ item: 'basis-full sm:basis-1/2 md:basis-1/3' }"
+          class="rounded-lg overflow-hidden mx-auto max-w-5xl"
+          arrows
+          indicators
+          :autoplay="{ delay: 3000 }"
+        >
+          <template #default="{ item }">
+            <div class="p-2 w-full">
+               <RecipeCard
+                :recipe="item"
+                :include-link="false"
+              />
+            </div>
+          </template>
+        </UCarousel>
 
         <div class="flex justify-center">
           <UButton
