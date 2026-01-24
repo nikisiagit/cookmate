@@ -56,6 +56,48 @@ const formattedTime = computed(() => {
   return `${mins}:${secs}`
 })
 
+function playTimerSound() {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const oscillator = audioContext.createOscillator()
+    const gainNode = audioContext.createGain()
+
+    oscillator.connect(gainNode)
+    gainNode.connect(audioContext.destination)
+
+    // Create a pleasant "ding" sound
+    oscillator.frequency.value = 800
+    oscillator.type = 'sine'
+
+    // Fade out effect
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1)
+
+    oscillator.start(audioContext.currentTime)
+    oscillator.stop(audioContext.currentTime + 1)
+
+    // Play a second tone for a nicer effect
+    setTimeout(() => {
+      const oscillator2 = audioContext.createOscillator()
+      const gainNode2 = audioContext.createGain()
+
+      oscillator2.connect(gainNode2)
+      gainNode2.connect(audioContext.destination)
+
+      oscillator2.frequency.value = 1000
+      oscillator2.type = 'sine'
+
+      gainNode2.gain.setValueAtTime(0.3, audioContext.currentTime)
+      gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1)
+
+      oscillator2.start(audioContext.currentTime)
+      oscillator2.stop(audioContext.currentTime + 1)
+    }, 200)
+  } catch (err) {
+    console.log('Audio playback error:', err)
+  }
+}
+
 function startTimer() {
   if (!isTimerRunning.value) {
     if (timerMinutes.value === 0 && timerSeconds.value === 0) {
@@ -69,7 +111,8 @@ function startTimer() {
       if (timerSeconds.value === 0) {
         if (timerMinutes.value === 0) {
           stopTimer()
-          // Play sound or show notification
+          // Play sound and show notification
+          playTimerSound()
           if ('Notification' in window && Notification.permission === 'granted') {
             new Notification('Timer Complete!', {
               body: 'Your cooking timer has finished.',
