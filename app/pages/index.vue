@@ -437,18 +437,6 @@ useSeoMeta({
           <div v-else class="text-center text-gray-500">
             Loading inspiring recipes...
           </div>
-          
-        </div>
-
-        <!-- Carousel Indicators -->
-        <div class="flex justify-center gap-2 mb-8">
-          <button
-            v-for="(_, index) in carouselRecipes"
-            :key="index"
-            class="w-2 h-2 rounded-full transition-all duration-300"
-            :class="index === currentCarouselIndex ? 'bg-primary-500 w-6' : 'bg-gray-300 dark:bg-gray-600'"
-            @click="setSlide(index)"
-          />
         </div>
 
         <div class="flex justify-center">
