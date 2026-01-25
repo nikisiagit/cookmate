@@ -19,3 +19,5 @@ All notable changes to this project will be documented in this file.
 - **Logo**: Updated CookMate logo to a new design.
 - **Font**: Fixed Komika font integration by correcting the font-family naming.
 - **Typography**: Added "Instrument Serif" font for paragraph text to improve readability.
+- **Logo**: Refreshed CookMate logo with a cleaner design.
+- **Accessibility**: Switched secondary font to "Merriweather" for better legibility and improved text contrast.
