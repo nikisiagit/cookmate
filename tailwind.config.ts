@@ -8,7 +8,7 @@ export default <Config>{
     theme: {
         extend: {
             fontFamily: {
-                sans: ['"Komika Axis"', 'sans-serif'],
+                sans: ['Komika', 'sans-serif'],
             },
         }
     }

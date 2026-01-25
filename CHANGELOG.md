@@ -16,3 +16,5 @@ All notable changes to this project will be documented in this file.
 - **Carousel UI**: Removed navigation dots and added auto-transition with pause on hover.
 - **Shopping List Copy**: Updated "Copy to Clipboard" to include category headers in the copied text.
 - **Auth UI**: Refactored `LoginForm` to separate Login and Register views.
+- **Logo**: Updated CookMate logo to a new design.
+- **Font**: Fixed Komika font integration by correcting the font-family naming.
