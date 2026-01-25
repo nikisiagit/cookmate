@@ -6,6 +6,7 @@ const props = defineProps<{
   index?: number
   isSaved?: boolean
   includeLink?: boolean
+  showAddButton?: boolean
 }>()
 
 const emit = defineEmits(['addToMealPlan', 'removeFromMealPlan', 'discard'])
@@ -91,7 +92,7 @@ const ui = {
     </NuxtLinkConditional>
 
     <template
-      v-if="index !== undefined"
+      v-if="index !== undefined || showAddButton"
       #footer
     >
       <!-- <div class="w-full flex justify-between p-4"> -->
@@ -120,7 +121,7 @@ const ui = {
       </UButton>
 
       <UButton
-        v-else
+        v-else-if="index !== undefined"
         variant="ghost"
         icon="i-heroicons-trash"
         size="lg"

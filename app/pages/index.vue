@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Recipe } from '~~/types/recipes'
+import { categorizeIngredient, type IngredientCategory } from '~/utils/ingredientCategories'
 
 const dummyRecipes = recipesDummyData()
 const carouselRecipes = ref<Recipe[]>([])
@@ -251,6 +252,32 @@ const shoppingList = computed(() => {
   }))
 })
 
+// Group ingredients by category
+const categorizedShoppingList = computed(() => {
+  const list = shoppingList.value
+  const categories: Record<IngredientCategory, typeof list> = {
+    'Veg': [],
+    'Fruit': [],
+    'Dairy': [],
+    'Meat/Fish': [],
+    'Bakery': [],
+    'Pantry': [],
+    'Household': [],
+    'Other': []
+  }
+
+  list.forEach(item => {
+    const category = categorizeIngredient(item.name)
+    if (categories[category]) {
+      categories[category].push(item)
+    } else {
+      categories['Other'].push(item)
+    }
+  })
+
+  return categories
+})
+
 async function fetchRandomRecipes(limit: number, excludedIds: number[] = []): Promise<Recipe[]> {
   const recipes = await $fetch<Recipe[]>('/api/recipes/random', {
     query: {
@@ -359,17 +386,22 @@ async function handleDiscardRecipe(index: number, id: number) {
 }
 
 // Copy shopping list to clipboard
+// Copy shopping list to clipboard
 async function copyShoppingList() {
-  const text = shoppingList.value
-    .map(item => `${item.name}: ${item.qty} ${item.unit}`)
-    .join('\n')
+  let text = 'CookMate Shopping List\n'
+  
+  for (const [category, items] of Object.entries(categorizedShoppingList.value)) {
+    if (items.length === 0) continue
+    text += `\n[${category}]\n`
+    text += items.map(item => `- ${item.name}: ${item.qty} ${item.unit}`).join('\n')
+  }
 
   try {
     await navigator.clipboard.writeText(text)
     const toast = useToast()
     toast.add({
       title: 'Copied!',
-      description: 'Shopping list copied to clipboard',
+      description: 'Categorized shopping list copied to clipboard',
       color: 'green'
     })
   } catch (error) {
@@ -524,38 +556,34 @@ useSeoMeta({
             </div>
           </template>
 
-          <div class="space-y-6">
+          <div class="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
             <div v-if="shoppingList.length === 0" class="text-center py-8 text-gray-500">
               Add recipes to your meal plan to generate a shopping list
             </div>
             <div v-else>
-              <!-- Recipe list -->
-              <div class="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Recipes</h4>
-                <div class="space-y-1">
-                  <div
-                    v-for="(item, index) in mealPlanList"
-                    :key="index"
-                    class="text-sm text-gray-600 dark:text-gray-400"
-                  >
-                    • {{ item.recipe.name }}
-                  </div>
-                </div>
-              </div>
-
-              <!-- Ingredients list -->
-              <div>
-                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Ingredients</h4>
-                <div class="divide-y divide-gray-200 dark:divide-gray-700">
-                  <div
-                    v-for="(item, index) in shoppingList"
-                    :key="index"
-                    class="py-3 flex items-center justify-between"
-                  >
-                    <span class="text-gray-900 dark:text-white">{{ item.name }}</span>
-                    <span class="font-medium text-gray-700 dark:text-gray-300">
-                      {{ item.qty }} {{ item.unit }}
+              <!-- Categorized Ingredients list -->
+              <div 
+                v-for="(items, category) in categorizedShoppingList" 
+                :key="category"
+              >
+                <div v-if="items.length > 0" class="mb-6">
+                  <h4 class="text-sm font-bold text-primary mb-2 uppercase tracking-wide flex items-center gap-2">
+                    {{ category }}
+                    <span class="text-xs font-normal text-gray-500 normal-case bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
+                      {{ items.length }}
                     </span>
+                  </h4>
+                  <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg px-4 py-2">
+                    <div
+                      v-for="(item, index) in items"
+                      :key="index"
+                      class="py-2 flex items-center justify-between border-b last:border-0 border-gray-100 dark:border-gray-700/50"
+                    >
+                      <span class="text-gray-900 dark:text-gray-200 font-medium">{{ item.name }}</span>
+                      <span class="text-gray-600 dark:text-gray-400 text-sm bg-white dark:bg-gray-800 px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700 shadow-sm">
+                        {{ item.qty }} {{ item.unit }}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

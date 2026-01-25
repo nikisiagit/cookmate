@@ -4,6 +4,14 @@ export default defineNuxtConfig({
   // https://nuxt.com/docs/getting-started/upgrade#testing-nuxt-4
   future: { compatibilityVersion: 4 },
 
+  app: {
+    head: {
+      link: [
+        { rel: 'stylesheet', href: 'https://fonts.cdnfonts.com/css/komika' }
+      ]
+    }
+  },
+
   // https://nuxt.com/modules
   modules: [
     '@nuxthub/core',
