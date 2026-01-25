@@ -73,9 +73,10 @@ watch(mealPlanList, (newValue) => {
               class="flex items-center gap-2"
               to="/"
             >
-              <UIcon
-                name="noto:pot-of-food"
-                size="28"
+              <img
+                src="/cookmate-logo.png"
+                alt="CookMate Logo"
+                class="h-10 w-auto dark:invert-0 invert"
                 :class="{ 'cooking-animation': isAnimating }"
               />
               <span class="truncate">
