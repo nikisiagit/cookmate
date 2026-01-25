@@ -3,9 +3,7 @@ import type { Recipe } from '~~/types/recipes'
 
 const dummyRecipes = recipesDummyData()
 const carouselRecipes = ref<Recipe[]>([])
-const currentCarouselIndex = ref(0)
 const isLoadingCarousel = ref(false)
-let carouselInterval: NodeJS.Timeout | null = null
 
 const mealAmount = ref(1)
 const servingSize = ref(2)
@@ -24,7 +22,7 @@ const mealPlanList = ref<MealPlanItem[]>([])
 async function fetchCarouselRecipes() {
   isLoadingCarousel.value = true
   try {
-    const data = await $fetch<Recipe[]>('/api/recipes', {
+    const data = await $fetch<Recipe[]>('/api/recipes/random', {
       query: { limit: 12 }
     })
     if (data && data.length > 0) {
@@ -38,49 +36,6 @@ async function fetchCarouselRecipes() {
     carouselRecipes.value = dummyRecipes
   } finally {
     isLoadingCarousel.value = false
-  }
-}
-
-// Get current set of 3 recipes to display (left, center, right)
-const displayedCarouselRecipes = computed(() => {
-  if (carouselRecipes.value.length === 0) {
-    const dummy = dummyRecipes
-    return {
-      left: dummy[0] || dummyRecipes[0],
-      center: dummy[1] || dummyRecipes[1],
-      right: dummy[2] || dummyRecipes[2]
-    }
-  }
-
-  const recipes = carouselRecipes.value
-  const index = currentCarouselIndex.value
-
-  // Get previous, current, and next recipes
-  const prevIndex = (index - 1 + recipes.length) % recipes.length
-  const currentIndex = index % recipes.length
-  const nextIndex = (index + 1) % recipes.length
-
-  return {
-    left: recipes[prevIndex],
-    center: recipes[currentIndex],
-    right: recipes[nextIndex]
-  }
-})
-
-// Start carousel rotation
-function startCarousel() {
-  if (carouselInterval) return
-
-  carouselInterval = setInterval(() => {
-    currentCarouselIndex.value = (currentCarouselIndex.value + 1) % carouselRecipes.value.length
-  }, 3000) // Rotate every 3 seconds
-}
-
-// Stop carousel rotation
-function stopCarousel() {
-  if (carouselInterval) {
-    clearInterval(carouselInterval)
-    carouselInterval = null
   }
 }
 
@@ -109,10 +64,8 @@ onMounted(() => {
     }
   }
 
-  // Fetch recipes and start carousel
-  fetchCarouselRecipes().then(() => {
-    startCarousel()
-  })
+  // Fetch recipes for carousel
+  fetchCarouselRecipes()
 })
 
 // Watch for changes and save to localStorage
@@ -121,11 +74,6 @@ watch(mealPlanList, (newValue) => {
     localStorage.setItem('meal-plan-list', JSON.stringify(newValue))
   }
 }, { deep: true })
-
-// Cleanup on unmount
-onUnmounted(() => {
-  stopCarousel()
-})
 
 // Track saved recipe IDs
 const savedRecipes = ref<number[]>([])
@@ -396,14 +344,15 @@ useSeoMeta({
           class="mb-8"
           @update:meal-amount="setMealAmount"
         />
+        
+        <!-- Recipe Carousel -->
         <UCarousel
-          v-if="dummyRecipes.length"
-          :items="dummyRecipes"
+          v-if="carouselRecipes.length"
+          :items="carouselRecipes"
           :ui="{ item: 'basis-full sm:basis-1/2 md:basis-1/3' }"
           class="rounded-lg overflow-hidden mx-auto max-w-5xl"
           arrows
-          indicators
-          :autoplay="{ delay: 3000 }"
+          :autoplay="{ delay: 5000 }"
         >
           <template #default="{ item }">
             <div class="p-2 w-full">
@@ -547,53 +496,5 @@ useSeoMeta({
 .generate-btn:hover {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   transform: scale(1.05);
-}
-
-/* Carousel slide transition */
-.carousel-slide-enter-active,
-.carousel-slide-leave-active {
-  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.carousel-slide-enter-from {
-  transform: translateX(-30%);
-  opacity: 0;
-}
-
-.carousel-slide-enter-to {
-  transform: translateX(0);
-  opacity: 1;
-}
-
-.carousel-slide-leave-from {
-  transform: translateX(0);
-  opacity: 1;
-}
-
-.carousel-slide-leave-to {
-  transform: translateX(30%);
-  opacity: 0;
-}
-
-/* Carousel image sizing */
-.carousel-side-image {
-  width: 300px;
-  flex-shrink: 0;
-}
-
-.carousel-center-image {
-  width: 550px;
-  max-width: 550px;
-}
-
-@media (max-width: 1024px) {
-  .carousel-side-image {
-    display: none;
-  }
-
-  .carousel-center-image {
-    width: 100%;
-    max-width: 600px;
-  }
 }
 </style>
