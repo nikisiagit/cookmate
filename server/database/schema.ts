@@ -1,4 +1,29 @@
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, real, blob } from 'drizzle-orm/sqlite-core'
+
+export const user = sqliteTable('user', {
+  id: integer('id').primaryKey(),
+  email: text('email').unique(),
+  nickname: text('nickname').notNull(),
+  avatarUrl: text('avatar_url'),
+  provider: text('provider').notNull(), // 'passkey', 'password'
+  providerId: text('provider_id'), // OAuth provider user ID
+  role: text('role').notNull().default('user'), // 'user' or 'admin'
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+})
+
+// WebAuthn passkey credentials
+export const passkey = sqliteTable('passkey', {
+  id: text('id').primaryKey(), // credential ID (base64url)
+  userId: integer('user_id')
+    .references(() => user.id)
+    .notNull(),
+  publicKey: blob('public_key', { mode: 'buffer' }).notNull(), // COSE public key
+  counter: integer('counter').notNull().default(0),
+  deviceType: text('device_type'), // 'singleDevice' or 'multiDevice'
+  backedUp: integer('backed_up', { mode: 'boolean' }).notNull().default(false),
+  transports: text('transports'), // JSON array of transports
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+})
 
 export const recipe = sqliteTable('recipe', {
   id: integer('id').primaryKey(),
@@ -36,4 +61,13 @@ export const step = sqliteTable('step', {
     .references(() => recipe.id)
     .notNull(),
   description: text('description').notNull(),
+})
+
+export const rating = sqliteTable('rating', {
+  id: integer('id').primaryKey(),
+  recipeId: integer('recipe_id')
+    .references(() => recipe.id)
+    .notNull(),
+  rating: integer('rating').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 })

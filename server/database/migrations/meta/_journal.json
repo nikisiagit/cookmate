@@ -8,6 +8,27 @@
       "when": 1730811246549,
       "tag": "0000_slow_mach_iv",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1737809804000,
+      "tag": "0001_add_rating_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1737809805000,
+      "tag": "0002_add_user_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1737810726000,
+      "tag": "0003_add_passkey_table",
+      "breakpoints": true
     }
   ]
 }

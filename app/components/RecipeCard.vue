@@ -31,7 +31,7 @@ const ui = {
 
 <template>
   <UCard
-    class="relative h-full flex flex-col justify-between"
+    class="relative h-full flex flex-col justify-between rounded-xl overflow-hidden"
     :ui="ui"
   >
     <template #header>
@@ -49,7 +49,7 @@ const ui = {
         <NuxtImg
           height="300"
           width="400"
-          class="h-44 w-full object-cover"
+          class="h-44 w-full object-cover rounded-t-xl"
           :src="recipe.imageUrl"
           :alt="recipe.name"
         />

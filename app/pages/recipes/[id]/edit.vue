@@ -1,13 +1,23 @@
 <script setup lang="ts">
-import type { RecipeState, IngredientState, StepState } from '~~/types/recipes'
+import type { RecipeState } from '~~/types/recipes'
 
 useSeoMeta({
-  title: 'Create a new recipe - Cookmate',
-  ogTitle: 'Create a new recipe - Cookmate',
-  description: 'Cookmate is a simple app that manage your recipes and plan your meals.',
-  ogDescription: 'Cookmate is a simple app that manage your recipes and plan your meals.',
+  title: 'Edit Recipe - Cookmate',
+  ogTitle: 'Edit Recipe - Cookmate',
+  description: 'Edit your recipe',
+  ogDescription: 'Edit your recipe',
   ogImage: '/logo.png',
 })
+
+definePageMeta({
+  middleware: 'auth',
+})
+
+const route = useRoute()
+const recipeId = route.params.id
+
+// Fetch existing recipe data
+const { data: existingRecipe, pending } = await useFetch(`/api/recipes/${recipeId}`)
 
 const difficultyOptions = [
   { label: 'Easy', value: 'easy' },
@@ -15,7 +25,6 @@ const difficultyOptions = [
   { label: 'Hard', value: 'hard' },
 ]
 
-const difficulty = ref('easy')
 const ingredientsOptions = [
   { label: 'Custom', value: ' ' },
   { label: 'Bottle', value: 'bottle' },
@@ -48,8 +57,6 @@ const ingredientsOptions = [
   { label: 'Teaspoon', value: 'tsp' },
 ]
 
-const ingredients = ref('cup')
-
 const recipe = ref<RecipeState>({
   name: '',
   description: '',
@@ -57,7 +64,7 @@ const recipe = ref<RecipeState>({
   hours: 0,
   minutes: 0,
   servings: 0,
-  imageUrl: 'https://koshereveryday.com/wp-content/plugins/whisk-recipes/assets/images/recipe-placeholder.svg',
+  imageUrl: '',
   sourceUrl: '',
   ratings: 0,
   diet: 'meat',
@@ -66,19 +73,34 @@ const recipe = ref<RecipeState>({
   protein: 0,
   carbs: 0,
   sugar: 0,
-  ingredients: [
-    {
-      name: '',
-      qty: 1,
-      unit: '',
-    },
-  ],
-  steps: [
-    {
-      description: '',
-    },
-  ],
+  ingredients: [],
+  steps: [],
 })
+
+// Populate form with existing data
+watch(existingRecipe, (data) => {
+  if (data) {
+    recipe.value = {
+      name: data.name || '',
+      description: data.description || '',
+      difficulty: data.difficulty || 'easy',
+      hours: data.hours || 0,
+      minutes: data.minutes || 0,
+      servings: data.servings || 0,
+      imageUrl: data.imageUrl || '',
+      sourceUrl: data.sourceUrl || '',
+      ratings: data.ratings || 0,
+      diet: data.diet || 'meat',
+      calories: data.calories || 0,
+      fat: data.fat || 0,
+      protein: data.protein || 0,
+      carbs: data.carbs || 0,
+      sugar: data.sugar || 0,
+      ingredients: data.ingredients || [],
+      steps: data.steps || [],
+    }
+  }
+}, { immediate: true })
 
 function addIngredient() {
   recipe.value.ingredients.push({
@@ -118,65 +140,10 @@ function removeStep(index: number) {
 
 const loading = ref(false)
 const error = ref()
-const extractUrl = ref('')
-const extracting = ref(false)
-const extractError = ref('')
-
-const extractRecipeFromUrl = async () => {
-  if (!extractUrl.value) return
-
-  try {
-    extracting.value = true
-    extractError.value = ''
-
-    const data = await $fetch('/api/recipes/extract', {
-      method: 'POST',
-      body: { url: extractUrl.value },
-    })
-
-    // Populate the form with extracted data
-    recipe.value = {
-      ...recipe.value,
-      name: data.name || recipe.value.name,
-      description: data.description || recipe.value.description,
-      servings: data.servings || recipe.value.servings,
-      hours: data.hours || recipe.value.hours,
-      minutes: data.minutes || recipe.value.minutes,
-      difficulty: data.difficulty || recipe.value.difficulty,
-      diet: data.diet || recipe.value.diet,
-      calories: data.calories || recipe.value.calories,
-      fat: data.fat || recipe.value.fat,
-      protein: data.protein || recipe.value.protein,
-      carbs: data.carbs || recipe.value.carbs,
-      sugar: data.sugar || recipe.value.sugar,
-      sourceUrl: data.sourceUrl || recipe.value.sourceUrl,
-      ingredients: data.ingredients && data.ingredients.length > 0 ? data.ingredients : recipe.value.ingredients,
-      steps: data.steps && data.steps.length > 0 ? data.steps : recipe.value.steps,
-    }
-
-    const toast = useToast()
-    toast.add({
-      title: 'Success!',
-      description: 'Recipe data extracted. Please review and edit as needed.',
-      color: 'green'
-    })
-  } catch (e: any) {
-    extractError.value = e.data?.message || 'Failed to extract recipe data'
-    const toast = useToast()
-    toast.add({
-      title: 'Error',
-      description: extractError.value,
-      color: 'red'
-    })
-  } finally {
-    extracting.value = false
-  }
-}
 
 const onSubmit = async (e: Event): Promise<any> => {
   e.preventDefault()
 
-  // validate the form
   if (!canSubmit.value) {
     return
   }
@@ -184,8 +151,8 @@ const onSubmit = async (e: Event): Promise<any> => {
   try {
     loading.value = true
 
-    const response = await $fetch('/api/recipes', {
-      method: 'POST',
+    const response = await $fetch(`/api/recipes/${recipeId}`, {
+      method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -194,12 +161,11 @@ const onSubmit = async (e: Event): Promise<any> => {
 
     console.log(response, 'response')
 
-    navigateTo('/recipes/' + response.id)
+    navigateTo('/recipes/' + recipeId)
   }
   catch (e: unknown) {
     const errorMessage = e instanceof Error ? e.message : String(e)
     console.error(errorMessage, 'error')
-
     error.value = errorMessage
   }
   finally {
@@ -219,7 +185,6 @@ const canSubmit = computed(() => {
     && recipe.value.fat > 0
     && recipe.value.protein > 0
     && recipe.value.carbs > 0
-  // && recipe.value.sourceUrl.length > 0
 })
 
 const dietOptions = [
@@ -241,19 +206,6 @@ const dietOptions = [
   },
 ]
 
-const dietIcon = computed(() => {
-  switch (recipe.value.diet) {
-    case 'meat':
-      return 'tabler:meat'
-    case 'vegetarian':
-      return 'hugeicons:vegetarian-food'
-    case 'vegan':
-      return 'lucide:vegan'
-    case 'pescatarian':
-      return 'icon-park-outline:eggplant'
-  }
-})
-
 const imageToUpload = ref()
 const uploadingImg = ref(false)
 
@@ -265,13 +217,10 @@ async function uploadImage(e?: Event) {
   uploadingImg.value = true
 
   try {
-    console.log(imageToUpload.value, 'image to upload')
-
     const upload = useUpload('/api/images', { multiple: false })
     const uploadedFile = await upload(imageToUpload.value as HTMLInputElement)
     uploadingImg.value = false
 
-    console.log(uploadedFile, 'uploaded file')
     recipe.value.imageUrl = window.location.origin + '/api/images/' + uploadedFile.pathname
   }
   catch (e) {
@@ -281,8 +230,6 @@ async function uploadImage(e?: Event) {
   finally {
     uploadingImg.value = false
   }
-
-  // form.reset()
 }
 
 async function fileSelection(event: Event) {
@@ -291,12 +238,11 @@ async function fileSelection(event: Event) {
   if (target.files?.[0]) {
     const compressedImage = await compressImage(target.files[0])
 
-    // Check if the compressed file size exceeds 1MB
     const maxSize = 1048576 // 1MB in bytes
 
     if (compressedImage.size > maxSize) {
       console.error('The file size is too large, please select a smaller image.')
-      return // Exit if the file size is too large
+      return
     }
 
     imageToUpload.value = compressedImage
@@ -320,7 +266,6 @@ async function compressImage(file: File, maxWidth = 600, maxHeight = 600, qualit
         const canvas = document.createElement('canvas')
         const ctx = canvas.getContext('2d')
 
-        // Calculate new dimensions
         let width = img.width
         let height = img.height
 
@@ -338,15 +283,13 @@ async function compressImage(file: File, maxWidth = 600, maxHeight = 600, qualit
         canvas.width = width
         canvas.height = height
 
-        // Draw the resized image onto the canvas
         ctx?.drawImage(img, 0, 0, width, height)
 
-        // Convert canvas to a Blob and then to a File object
         canvas.toBlob(
           (blob) => {
             if (blob) {
               const compressedFile = new File([blob], file.name, {
-                type: 'image/jpeg', // Adjust type as needed
+                type: 'image/jpeg',
                 lastModified: Date.now(),
               })
               resolve(compressedFile)
@@ -356,7 +299,7 @@ async function compressImage(file: File, maxWidth = 600, maxHeight = 600, qualit
             }
           },
           'image/jpeg',
-          quality, // Adjust quality (0 to 1) as needed
+          quality,
         )
       }
 
@@ -368,8 +311,8 @@ async function compressImage(file: File, maxWidth = 600, maxHeight = 600, qualit
   })
 }
 
-const isOpen = ref(false)
 const { loggedIn } = useUserSession()
+const isOpen = ref(false)
 </script>
 
 <template>
@@ -426,47 +369,34 @@ const { loggedIn } = useUserSession()
         Welcome back, chef!
       </h1>
       <p class="text-gray-400">
-        You must be signed in to create a new recipe.
+        You must be signed in to edit recipes.
       </p>
     </div>
+
+    <div
+      v-else-if="pending"
+      class="text-center py-8"
+    >
+      <p class="text-gray-500">Loading recipe...</p>
+    </div>
+
     <main
       v-else
     >
-      <h1 class="flex text-xl font-bold leading-7 text-gray-900 dark:text-white">
-        Create a new recipe
-      </h1>
+      <div class="flex items-center gap-4 mb-6">
+        <UButton
+          icon="heroicons:arrow-left-16-solid"
+          variant="ghost"
+          @click="$router.back()"
+        >
+          Back
+        </UButton>
+        <h1 class="text-xl font-bold text-gray-900 dark:text-white">
+          Edit Recipe
+        </h1>
+      </div>
 
-      <!-- URL Extraction Card -->
       <div class="mx-auto w-full max-w-screen-2xl py-4">
-        <div class="mb-6 p-6 bg-primary-50 dark:bg-primary-900/20 rounded-xl border-2 border-primary-200 dark:border-primary-800">
-          <div class="flex items-center gap-2 mb-3">
-            <UIcon name="heroicons:link-20-solid" size="20" class="text-primary-600 dark:text-primary-400" />
-            <h2 class="text-lg font-semibold text-primary-900 dark:text-primary-100">Import from URL</h2>
-          </div>
-          <p class="text-sm text-primary-700 dark:text-primary-300 mb-4">
-            Paste a recipe URL and we'll extract the details for you. You can review and edit everything before saving.
-          </p>
-          <div class="flex gap-2">
-            <UInput
-              v-model="extractUrl"
-              placeholder="https://www.example.com/recipe..."
-              class="flex-1"
-              size="lg"
-              icon="heroicons:globe-alt-20-solid"
-              :disabled="extracting"
-            />
-            <UButton
-              :loading="extracting"
-              :disabled="!extractUrl || extracting"
-              size="lg"
-              color="primary"
-              @click="extractRecipeFromUrl"
-            >
-              {{ extracting ? 'Extracting...' : 'Extract' }}
-            </UButton>
-          </div>
-        </div>
-
         <form @submit="(e) => onSubmit(e)">
           <div class="grid md:grid-cols-4 lg:grid-cols-4">
             <div class="pt-2 pb-3 md:px-4 flex flex-col gap-2 col-span-4 md:col-span-4 lg:col-span-2">
@@ -477,7 +407,7 @@ const { loggedIn } = useUserSession()
                 <UInput
                   v-model="recipe.name"
                   type="text"
-                  class="text-sm sm:text-base w-full rounded border-neutral-100 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-700 dark:text-neutral-100"
+                  class="text-sm sm:text-base w-full"
                   name="name"
                   placeholder="Name"
                 />
@@ -488,7 +418,7 @@ const { loggedIn } = useUserSession()
                   <UTextarea
                     v-model="recipe.description"
                     placeholder="Add a description here"
-                    class="text-sm sm:text-base w-full rounded border-neutral-100 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-700 dark:text-neutral-100"
+                    class="text-sm sm:text-base w-full"
                     :rows="2"
                     resize
                     name="description"
@@ -503,11 +433,9 @@ const { loggedIn } = useUserSession()
                     <UInput
                       v-model="recipe.hours"
                       type="number"
-                      class="text-sm sm:text-base w-full rounded border-neutral-100 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-700 dark:text-neutral-100"
+                      class="text-sm sm:text-base w-full"
                       name="cookingTimeHours"
                       placeholder="Hours"
-                      pattern="[0-9]*"
-                      inputmode="numeric"
                     />
                   </div>
 
@@ -516,11 +444,9 @@ const { loggedIn } = useUserSession()
                     <UInput
                       v-model="recipe.minutes"
                       type="number"
-                      class="text-sm sm:text-base w-full rounded border-neutral-100 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-700 dark:text-neutral-100"
+                      class="text-sm sm:text-base w-full"
                       name="cookingTimeMinutes"
                       placeholder="Minutes"
-                      pattern="[0-9]*"
-                      inputmode="numeric"
                     />
                   </div>
 
@@ -529,12 +455,10 @@ const { loggedIn } = useUserSession()
                     <UInput
                       v-model="recipe.servings"
                       type="number"
-                      class="text-sm sm:text-base w-full rounded border-neutral-100 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-700 dark:text-neutral-100"
+                      class="text-sm sm:text-base w-full"
                       name="servings"
                       placeholder="Servings"
                       min="1"
-                      pattern="[0-9]*"
-                      inputmode="numeric"
                     />
                   </div>
                 </div>
@@ -547,16 +471,13 @@ const { loggedIn } = useUserSession()
                     <USelect
                       v-model="recipe.difficulty"
                       name="difficulty"
-                      class="text-sm sm:text-base w-full rounded border-neutral-100 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-700 dark:text-neutral-100"
+                      class="text-sm sm:text-base w-full"
                       :options="difficultyOptions"
                     />
                   </div>
 
                   <div class="flex w-full flex-col gap-1">
-                    <label
-                      class="items-center"
-                      for="diet"
-                    >
+                    <label for="diet">
                       <span class="dark:text-neutral-200 ml-1">
                         Diet
                       </span>
@@ -564,7 +485,7 @@ const { loggedIn } = useUserSession()
                     <USelect
                       v-model="recipe.diet"
                       name="diet"
-                      class="text-sm sm:text-base w-full rounded border-neutral-100 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-700 dark:text-neutral-100"
+                      class="text-sm sm:text-base w-full"
                       :options="dietOptions"
                     />
                   </div>
@@ -584,7 +505,7 @@ const { loggedIn } = useUserSession()
                       <UInput
                         v-model="recipe.calories"
                         type="number"
-                        class="text-sm sm:text-base w-full rounded border-neutral-100 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-700 dark:text-neutral-100"
+                        class="text-sm sm:text-base w-full"
                         name="calories"
                         placeholder="Calories"
                         min="0"
@@ -595,7 +516,7 @@ const { loggedIn } = useUserSession()
                     </div>
 
                     <div class="flex w-full flex-col gap-1">
-                      <label for="calories">
+                      <label for="fat">
                         <span class="dark:text-neutral-200 ">
                           Fat
                         </span>
@@ -604,7 +525,7 @@ const { loggedIn } = useUserSession()
                       <UInput
                         v-model="recipe.fat"
                         type="number"
-                        class="text-sm sm:text-base w-full rounded border-neutral-100 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-700 dark:text-neutral-100"
+                        class="text-sm sm:text-base w-full"
                         name="fat"
                         placeholder="Fat"
                         min="0"
@@ -617,7 +538,7 @@ const { loggedIn } = useUserSession()
 
                   <div class="flex items-start gap-2">
                     <div class="flex w-full flex-col gap-1">
-                      <label for="calories">
+                      <label for="protein">
                         <span class="dark:text-neutral-200 ">
                           Protein
                         </span>
@@ -626,7 +547,7 @@ const { loggedIn } = useUserSession()
                       <UInput
                         v-model="recipe.protein"
                         type="number"
-                        class="text-sm sm:text-base w-full rounded border-neutral-100 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-700 dark:text-neutral-100"
+                        class="text-sm sm:text-base w-full"
                         name="protein"
                         placeholder="Protein"
                         min="0"
@@ -637,7 +558,7 @@ const { loggedIn } = useUserSession()
                     </div>
 
                     <div class="flex w-full flex-col gap-1">
-                      <label for="calories">
+                      <label for="carbs">
                         <span class="dark:text-neutral-200 ">
                           Carbs
                         </span>
@@ -646,7 +567,7 @@ const { loggedIn } = useUserSession()
                       <UInput
                         v-model="recipe.carbs"
                         type="number"
-                        class="text-sm sm:text-base w-full rounded border-neutral-100 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-700 dark:text-neutral-100"
+                        class="text-sm sm:text-base w-full"
                         name="carbs"
                         placeholder="Carbs"
                         min="0"
@@ -665,7 +586,7 @@ const { loggedIn } = useUserSession()
                 <UInput
                   v-model="recipe.sourceUrl"
                   type="text"
-                  class="text-sm sm:text-base w-full rounded border-neutral-100 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-700 dark:text-neutral-100"
+                  class="text-sm sm:text-base w-full"
                   name="source_url"
                   placeholder="Enter the url of the recipe"
                 />
@@ -723,7 +644,7 @@ const { loggedIn } = useUserSession()
                       <UInput
                         v-model="ingredient.qty"
                         type="number"
-                        class="text-sm sm:text-base w-full rounded border-neutral-100 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-700 dark:text-neutral-100"
+                        class="text-sm sm:text-base w-full"
                         :name="`ingredients.${index}.qty`"
                         placeholder="Qty"
                         inputmode="decimal"
@@ -733,7 +654,7 @@ const { loggedIn } = useUserSession()
                       <USelect
                         v-model="ingredient.unit"
                         :name="`ingredients.${index}.unit`"
-                        class="text-sm sm:text-base w-full rounded border-neutral-100 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-700 dark:text-neutral-100"
+                        class="text-sm sm:text-base w-full"
                         :options="ingredientsOptions"
                       />
                     </div>
@@ -761,7 +682,7 @@ const { loggedIn } = useUserSession()
                     <UInput
                       v-model="ingredient.name"
                       type="text"
-                      class="text-sm sm:text-base w-full rounded border-neutral-100 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-700 dark:text-neutral-100"
+                      class="text-sm sm:text-base w-full"
                       :name="`ingredients.${index}.name`"
                       placeholder="Ingredient"
                     />
@@ -845,7 +766,7 @@ const { loggedIn } = useUserSession()
               :disabled="!canSubmit"
               :loading="loading"
             >
-              Create Recipe
+              Update Recipe
             </UButton>
           </div>
         </form>
