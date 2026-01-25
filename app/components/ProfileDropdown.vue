@@ -42,6 +42,8 @@ const isDark = computed({
   },
 })
 
+const toast = useToast()
+
 const isOpen = ref(false)
 
 async function clearSession() {
@@ -49,6 +51,11 @@ async function clearSession() {
   await clear()
   disconnect.value = false
   isOpen.value = false
+  toast.add({
+    title: 'Signed out',
+    description: 'You have been successfully signed out.',
+    color: 'gray',
+  })
   navigateTo('/')
 }
 

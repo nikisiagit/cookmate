@@ -6,14 +6,19 @@ const challengeStore = new Map<string, { challenge: string; expiresAt: number }>
 
 // RP (Relying Party) configuration
 export function getWebAuthnConfig() {
-    const runtimeConfig = useRuntimeConfig()
-    const rpID = runtimeConfig.public.webauthnRpId || 'localhost'
-    const rpName = 'CookMate'
-    const origin = runtimeConfig.public.webauthnOrigin || `https://${rpID}`
+    // For server-side, read directly from process.env (Cloudflare Pages secrets)
+    // Fall back to runtime config for local development
+    const rpID = process.env.NUXT_PUBLIC_WEBAUTHN_RP_ID
+        || useRuntimeConfig().public.webauthnRpId
+        || 'localhost'
+
+    const origin = process.env.NUXT_PUBLIC_WEBAUTHN_ORIGIN
+        || useRuntimeConfig().public.webauthnOrigin
+        || `http://${rpID === 'localhost' ? 'localhost:3000' : rpID}`
 
     return {
         rpID,
-        rpName,
+        rpName: 'CookMate',
         origin,
     }
 }
