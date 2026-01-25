@@ -8,7 +8,7 @@ export default eventHandler(async (event) => {
     throw createError({ statusCode: 429, statusMessage: 'Too Many Requests' })
 
   if (body.password === adminPassword) {
-    const db = useDrizzle()
+    const db = useDB()
 
     // Check if admin user exists with password provider
     const existingAdmins = await db.select().from(tables.user).where(

@@ -18,7 +18,7 @@ export default eventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'User ID is required' })
   }
 
-  const db = useDrizzle()
+  const db = useDB()
 
   // Update user role to admin
   const updatedUsers = await db.update(tables.user)

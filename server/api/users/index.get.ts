@@ -10,7 +10,7 @@ export default eventHandler(async (event) => {
     throw createError({ statusCode: 403, statusMessage: 'Forbidden: Admin access required' })
   }
 
-  const db = useDrizzle()
+  const db = useDB()
 
   // Get all users
   const users = await db.select({

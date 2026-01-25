@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 
 export default oauth.appleEventHandler({
   async onSuccess(event, { user: oauthUser }) {
-    const db = useDrizzle()
+    const db = useDB()
 
     // Check if user already exists
     const existingUsers = await db.select().from(tables.user).where(
