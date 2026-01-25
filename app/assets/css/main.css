@@ -1,5 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @layer base {
-  p, .prose {
-    font-family: 'Merriweather', serif;
-  }
+
+    p,
+    .prose {
+        font-family: 'Merriweather', serif;
+    }
 }
