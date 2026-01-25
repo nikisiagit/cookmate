@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 
-export default oauth.appleEventHandler({
+export default defineOAuthAppleEventHandler({
   async onSuccess(event, { user: oauthUser }) {
     const db = useDB()
 

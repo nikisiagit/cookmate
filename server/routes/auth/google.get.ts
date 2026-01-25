@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 
-export default oauth.googleEventHandler({
+export default defineOAuthGoogleEventHandler({
   async onSuccess(event, { user: oauthUser }) {
     const db = useDB()
 
