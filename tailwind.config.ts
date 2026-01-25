@@ -9,6 +9,7 @@ export default <Config>{
         extend: {
             fontFamily: {
                 sans: ['Komika', 'sans-serif'],
+                serif: ['"Instrument Serif"', 'serif'],
             },
         }
     }

@@ -18,3 +18,4 @@ All notable changes to this project will be documented in this file.
 - **Auth UI**: Refactored `LoginForm` to separate Login and Register views.
 - **Logo**: Updated CookMate logo to a new design.
 - **Font**: Fixed Komika font integration by correcting the font-family naming.
+- **Typography**: Added "Instrument Serif" font for paragraph text to improve readability.

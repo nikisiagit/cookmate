@@ -7,7 +7,8 @@ export default defineNuxtConfig({
   app: {
     head: {
       link: [
-        { rel: 'stylesheet', href: 'https://fonts.cdnfonts.com/css/komika' }
+        { rel: 'stylesheet', href: 'https://fonts.cdnfonts.com/css/komika' },
+        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap' }
       ]
     }
   },

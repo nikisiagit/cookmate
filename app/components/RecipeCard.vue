@@ -85,7 +85,7 @@ const ui = {
 
       <span
         v-if="index !== undefined"
-        class="dark:text-neutral-200 line-clamp-2 text-sm"
+        class="dark:text-neutral-200 line-clamp-2 text-sm font-serif tracking-wide text-base"
       >
         {{ recipe.description }}
       </span>
