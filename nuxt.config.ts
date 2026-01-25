@@ -38,6 +38,13 @@ export default defineNuxtConfig({
     storage: 'localStorage', // or 'sessionStorage' or 'cookie'
     storageKey: 'nuxt-color-mode',
   },
+  runtimeConfig: {
+    public: {
+      // WebAuthn configuration - set via environment variables in production
+      webauthnRpId: process.env.NUXT_PUBLIC_WEBAUTHN_RP_ID || 'localhost',
+      webauthnOrigin: process.env.NUXT_PUBLIC_WEBAUTHN_ORIGIN || 'http://localhost:3000',
+    },
+  },
   pinia: {
     storesDirs: ['./stores/**'],
   },

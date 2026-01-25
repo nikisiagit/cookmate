@@ -1,0 +1,166 @@
+// Composable for WebAuthn passkey authentication
+import {
+    startRegistration,
+    startAuthentication,
+    browserSupportsWebAuthn,
+    browserSupportsWebAuthnAutofill,
+} from '@simplewebauthn/browser'
+import type {
+    PublicKeyCredentialCreationOptionsJSON,
+    PublicKeyCredentialRequestOptionsJSON,
+} from '@simplewebauthn/types'
+
+export function usePasskeys() {
+    const isSupported = ref(false)
+    const isAutofillSupported = ref(false)
+    const isLoading = ref(false)
+    const error = ref<string | null>(null)
+
+    // Check WebAuthn support on mount
+    onMounted(async () => {
+        isSupported.value = browserSupportsWebAuthn()
+        if (isSupported.value) {
+            isAutofillSupported.value = await browserSupportsWebAuthnAutofill()
+        }
+    })
+
+    /**
+     * Register a new passkey for a user
+     */
+    async function register(nickname: string): Promise<{ success: boolean; user?: { id: number; nickname: string; role: string } }> {
+        if (!isSupported.value) {
+            error.value = 'WebAuthn is not supported in this browser'
+            return { success: false }
+        }
+
+        isLoading.value = true
+        error.value = null
+
+        try {
+            // Step 1: Get registration options from server
+            const startResponse = await $fetch<{
+                options: PublicKeyCredentialCreationOptionsJSON
+                tempUserId: string
+            }>('/api/passkey/register/start', {
+                method: 'POST',
+                body: { nickname },
+            })
+
+            // Step 2: Create credential using browser API
+            const credential = await startRegistration({
+                optionsJSON: startResponse.options,
+            })
+
+            // Step 3: Verify with server and create user
+            const finishResponse = await $fetch<{
+                success: boolean
+                user: { id: number; nickname: string; role: string }
+            }>('/api/passkey/register/finish', {
+                method: 'POST',
+                body: {
+                    nickname,
+                    response: credential,
+                },
+            })
+
+            return finishResponse
+        }
+        catch (err: unknown) {
+            if (err instanceof Error) {
+                // Handle user cancellation
+                if (err.name === 'NotAllowedError') {
+                    error.value = 'Registration was cancelled'
+                }
+                else if (err.name === 'InvalidStateError') {
+                    error.value = 'A passkey already exists for this device'
+                }
+                else {
+                    error.value = (err as { data?: { message?: string } }).data?.message || err.message || 'Registration failed'
+                }
+            }
+            else {
+                error.value = 'An unexpected error occurred'
+            }
+            return { success: false }
+        }
+        finally {
+            isLoading.value = false
+        }
+    }
+
+    /**
+     * Login with a passkey
+     * @param nickname - Optional nickname to filter credentials
+     */
+    async function login(nickname?: string): Promise<{ success: boolean; user?: { id: number; nickname: string; role: string } }> {
+        if (!isSupported.value) {
+            error.value = 'WebAuthn is not supported in this browser'
+            return { success: false }
+        }
+
+        isLoading.value = true
+        error.value = null
+
+        try {
+            // Step 1: Get authentication options from server
+            const startResponse = await $fetch<{
+                options: PublicKeyCredentialRequestOptionsJSON
+                sessionKey: string
+            }>('/api/passkey/login/start', {
+                method: 'POST',
+                body: { nickname },
+            })
+
+            // Step 2: Authenticate using browser API
+            const credential = await startAuthentication({
+                optionsJSON: startResponse.options,
+            })
+
+            // Step 3: Verify with server
+            const finishResponse = await $fetch<{
+                success: boolean
+                user: { id: number; nickname: string; role: string }
+            }>('/api/passkey/login/finish', {
+                method: 'POST',
+                body: {
+                    sessionKey: startResponse.sessionKey,
+                    response: credential,
+                },
+            })
+
+            return finishResponse
+        }
+        catch (err: unknown) {
+            if (err instanceof Error) {
+                // Handle user cancellation
+                if (err.name === 'NotAllowedError') {
+                    error.value = 'Login was cancelled'
+                }
+                else {
+                    error.value = (err as { data?: { message?: string } }).data?.message || err.message || 'Login failed'
+                }
+            }
+            else {
+                error.value = 'An unexpected error occurred'
+            }
+            return { success: false }
+        }
+        finally {
+            isLoading.value = false
+        }
+    }
+
+    function clearError() {
+        error.value = null
+    }
+
+    return {
+        isSupported,
+        isAutofillSupported,
+        isLoading,
+        error,
+        register,
+        login,
+        clearError,
+    }
+}
