@@ -4,6 +4,8 @@ import type { Recipe } from '~~/types/recipes'
 const dummyRecipes = recipesDummyData()
 const carouselRecipes = ref<Recipe[]>([])
 const isLoadingCarousel = ref(false)
+const currentCarouselIndex = ref(0)
+let carouselInterval: NodeJS.Timeout | null = null
 
 const mealAmount = ref(1)
 const servingSize = ref(2)
@@ -27,17 +29,115 @@ async function fetchCarouselRecipes() {
     })
     if (data && data.length > 0) {
       carouselRecipes.value = data
+      startCarousel() // Start rotation once data is loaded
     } else {
-      // Fallback to dummy recipes if no recipes in database
       carouselRecipes.value = dummyRecipes
+      startCarousel()
     }
   } catch (error) {
     console.error('Error fetching carousel recipes:', error)
     carouselRecipes.value = dummyRecipes
+    startCarousel()
   } finally {
     isLoadingCarousel.value = false
   }
 }
+
+// Carousel Logic
+function startCarousel() {
+  if (carouselInterval) clearInterval(carouselInterval)
+  carouselInterval = setInterval(() => {
+    nextSlide()
+  }, 3000)
+}
+
+function stopCarousel() {
+  if (carouselInterval) {
+    clearInterval(carouselInterval)
+    carouselInterval = null
+  }
+}
+
+function nextSlide() {
+  currentCarouselIndex.value = (currentCarouselIndex.value + 1) % carouselRecipes.value.length
+}
+
+function prevSlide() {
+  currentCarouselIndex.value = (currentCarouselIndex.value - 1 + carouselRecipes.value.length) % carouselRecipes.value.length
+}
+
+function setSlide(index: number) {
+  currentCarouselIndex.value = index
+  startCarousel() // Reset timer on manual interaction
+}
+
+// Calculate style for each card based on its position relative to current index
+function getCardStyle(index: number) {
+  const total = carouselRecipes.value.length
+  if (total === 0) return {}
+
+  const current = currentCarouselIndex.value
+  
+  // Calculate circular distance
+  let diff = (index - current) % total
+  if (diff < -total / 2) diff += total
+  if (diff > total / 2) diff -= total
+
+  // Base styles for transition
+  const baseStyle = {
+    transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+    position: 'absolute' as const,
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    zIndex: 0,
+    opacity: 0,
+    filter: 'blur(4px)',
+    pointerEvents: 'none' as const,
+    width: '100%',
+    maxWidth: '400px', // Card width
+  }
+
+  // Active Center Item
+  if (diff === 0) {
+    return {
+      ...baseStyle,
+      zIndex: 30,
+      opacity: 1,
+      filter: 'blur(0px)',
+      transform: 'translate(-50%, -50%) scale(1.1)',
+      pointerEvents: 'auto' as const,
+    }
+  } 
+  // Prev Item (Left)
+  else if (diff === -1 || (current === 0 && index === total - 1)) {
+    return {
+      ...baseStyle,
+      zIndex: 20,
+      opacity: 0.6,
+      filter: 'blur(3px)',
+      transform: 'translate(-120%, -50%) scale(0.85)',
+      cursor: 'pointer',
+      pointerEvents: 'auto' as const,
+    }
+  } 
+  // Next Item (Right)
+  else if (diff === 1 || (current === total - 1 && index === 0)) {
+    return {
+      ...baseStyle,
+      zIndex: 20,
+      opacity: 0.6,
+      filter: 'blur(3px)',
+      transform: 'translate(20%, -50%) scale(0.85)',
+      cursor: 'pointer',
+      pointerEvents: 'auto' as const,
+    }
+  }
+  
+  // Hidden Items (store them behind center to prevent flying)
+  return baseStyle
+}
+
 
 onMounted(() => {
   // Load from localStorage on client side only
@@ -75,6 +175,11 @@ watch(mealPlanList, (newValue) => {
   }
 }, { deep: true })
 
+// Cleanup on unmount
+onUnmounted(() => {
+  stopCarousel()
+})
+
 // Track saved recipe IDs
 const savedRecipes = ref<number[]>([])
 // Excluded recipe IDs
@@ -96,31 +201,15 @@ const setServingSize = (value: number) => {
 // Scale ingredient quantities based on serving size
 function scaleRecipeIngredients(recipe: Recipe, targetServings: number): Recipe {
   if (!recipe.servings || recipe.servings === 0) return recipe
-
-  console.log('=== SCALING RECIPE ===')
-  console.log('Recipe name:', recipe.name)
-  console.log('Recipe data:', JSON.stringify(recipe, null, 2))
-  console.log('Has ingredients?', !!recipe.ingredients)
-  console.log('Ingredients length:', recipe.ingredients?.length || 0)
-
-  if (!recipe.ingredients || !Array.isArray(recipe.ingredients)) {
-    console.warn('Recipe has no ingredients array:', recipe.name)
-    return recipe
-  }
+  if (!recipe.ingredients || !Array.isArray(recipe.ingredients)) return recipe
 
   const scale = targetServings / recipe.servings
-
-  console.log('Original servings:', recipe.servings)
-  console.log('Target servings:', targetServings)
-  console.log('Scale factor:', scale)
 
   return {
     ...recipe,
     servings: targetServings,
     ingredients: recipe.ingredients.map(ingredient => {
-      const originalQty = ingredient.qty
       const scaledQty = Number((ingredient.qty * scale).toFixed(2))
-      console.log(`  ${ingredient.name}: ${originalQty} → ${scaledQty} ${ingredient.unit}`)
       return {
         ...ingredient,
         qty: scaledQty
@@ -131,34 +220,22 @@ function scaleRecipeIngredients(recipe: Recipe, targetServings: number): Recipe 
 
 // Generate shopping list from meal plan
 const shoppingList = computed(() => {
-  console.log('=== GENERATING SHOPPING LIST ===')
-  console.log('Current randomiser servingSize:', servingSize.value)
-  console.log('Meal plan items:', mealPlanList.value.length)
-
   if (!mealPlanList.value.length) return []
 
   const ingredientMap = new Map<string, { name: string, qty: number, unit: string }>()
 
   // Use the current randomiser serving size for ALL recipes
-  mealPlanList.value.forEach((mealPlanItem, index) => {
-    console.log(`\nProcessing recipe ${index + 1}:`, mealPlanItem.recipe.name)
-    console.log('  Stored customServings:', mealPlanItem.customServings)
-
+  mealPlanList.value.forEach((mealPlanItem) => {
     const scaledRecipe = scaleRecipeIngredients(mealPlanItem.recipe, servingSize.value)
 
-    if (!scaledRecipe.ingredients || !Array.isArray(scaledRecipe.ingredients)) {
-      console.warn('  Skipping recipe - no ingredients:', scaledRecipe.name)
-      return
-    }
+    if (!scaledRecipe.ingredients || !Array.isArray(scaledRecipe.ingredients)) return
 
     scaledRecipe.ingredients.forEach(ingredient => {
       const key = `${ingredient.name.toLowerCase()}-${ingredient.unit}`
       if (ingredientMap.has(key)) {
         const existing = ingredientMap.get(key)!
-        console.log(`  Adding to existing ${ingredient.name}: ${existing.qty} + ${ingredient.qty}`)
         existing.qty += ingredient.qty
       } else {
-        console.log(`  New ingredient ${ingredient.name}: ${ingredient.qty} ${ingredient.unit}`)
         ingredientMap.set(key, {
           name: ingredient.name,
           qty: ingredient.qty,
@@ -168,18 +245,10 @@ const shoppingList = computed(() => {
     })
   })
 
-  const result = Array.from(ingredientMap.values()).map(item => ({
+  return Array.from(ingredientMap.values()).map(item => ({
     ...item,
     qty: Number(item.qty.toFixed(2))
   }))
-
-  console.log('=== FINAL SHOPPING LIST ===')
-  console.log('Total unique ingredients:', result.length)
-  result.forEach(item => {
-    console.log(`  ${item.name}: ${item.qty} ${item.unit}`)
-  })
-
-  return result
 })
 
 async function fetchRandomRecipes(limit: number, excludedIds: number[] = []): Promise<Recipe[]> {
@@ -332,7 +401,7 @@ useSeoMeta({
         </div>
       </template>
 
-      <!-- this could be a component randomiser-start.vue --->
+      <!-- Randomiser Start & Carousel -->
       <template v-else-if="!recipes.length && !isLoadingRecipes">
         <h1 class="text-center text-2xl font-semibold mt-8 mb-6">
           Let fortune decide your meals this week
@@ -345,29 +414,47 @@ useSeoMeta({
           @update:meal-amount="setMealAmount"
         />
         
-        <!-- Recipe Carousel -->
-        <UCarousel
-          v-if="carouselRecipes.length"
-          :items="carouselRecipes"
-          :ui="{ item: 'basis-full sm:basis-1/2 md:basis-1/3' }"
-          class="rounded-lg overflow-hidden mx-auto max-w-5xl"
-          arrows
-          :autoplay="{ delay: 5000 }"
-        >
-          <template #default="{ item }">
-            <div class="p-2 w-full">
-               <RecipeCard
-                :recipe="item"
+        <!-- 3D Carousel Container -->
+        <div class="relative h-[450px] w-full max-w-6xl mx-auto flex items-center justify-center my-8 overflow-hidden touch-pan-y" @mouseenter="stopCarousel" @mouseleave="startCarousel">
+          
+          <template v-if="carouselRecipes.length">
+            <div 
+              v-for="(recipe, index) in carouselRecipes" 
+              :key="recipe.id"
+              :style="getCardStyle(index)"
+              class="carousel-item"
+              @click="setSlide(index)"
+            >
+              <RecipeCard
+                :recipe="recipe"
                 :include-link="false"
+                class="w-full h-full shadow-2xl"
               />
             </div>
           </template>
-        </UCarousel>
+
+          <!-- Loading State for Carousel -->
+          <div v-else class="text-center text-gray-500">
+            Loading inspiring recipes...
+          </div>
+          
+        </div>
+
+        <!-- Carousel Indicators -->
+        <div class="flex justify-center gap-2 mb-8">
+          <button
+            v-for="(_, index) in carouselRecipes"
+            :key="index"
+            class="w-2 h-2 rounded-full transition-all duration-300"
+            :class="index === currentCarouselIndex ? 'bg-primary-500 w-6' : 'bg-gray-300 dark:bg-gray-600'"
+            @click="setSlide(index)"
+          />
+        </div>
 
         <div class="flex justify-center">
           <UButton
             :disabled="mealAmount < 1 || mealAmount > 7"
-            class="text-center w-80 rounded-lg p-4 lg:w-1/4 justify-center generate-btn mt-8 rounded-lg shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl hover:scale-105 transition-all transform duration-200 ease-in-out mx-auto"
+            class="text-center w-80 rounded-lg p-4 lg:w-1/4 justify-center generate-btn rounded-lg shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl hover:scale-105 transition-all transform duration-200 ease-in-out mx-auto"
             size="lg"
             @click="generateRandomRecipes"
           >
@@ -376,6 +463,7 @@ useSeoMeta({
         </div>
       </template>
 
+      <!-- Randomiser Results -->
       <template v-else>
         <!-- this could be a component randomiser-results.vue --->
         <h1 class="text-2xl font-semibold text-center my-8">
@@ -496,5 +584,13 @@ useSeoMeta({
 .generate-btn:hover {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   transform: scale(1.05);
+}
+
+/* 3D Carousel Item Styles */
+.carousel-item {
+  will-change: transform, opacity, filter;
+  /* Ensure smooth rendering */
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 </style>
