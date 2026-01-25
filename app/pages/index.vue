@@ -287,14 +287,32 @@ async function generateRandomRecipes() {
 }
 
 // Add a recipe to the meal plan and mark it as saved
+const { loggedIn } = useUserSession()
+const showSignupPrompt = ref(false)
+const showAuthModal = ref(false)
+const hasShownPrompt = ref(false) // Only show once per session
+
 function addToMealPlan(recipe: Recipe) {
   if (!savedRecipes.value.includes(recipe.id)) {
+    const isFirstItem = mealPlanList.value.length === 0
+    
     mealPlanList.value.push({
       recipe,
       customServings: servingSize.value
     })
     savedRecipes.value.push(recipe.id)
+
+    // Show signup prompt if not logged in, it's the first item (or reasonably early), and haven't shown yet
+    if (!loggedIn.value && isFirstItem && !hasShownPrompt.value) {
+      showSignupPrompt.value = true
+      hasShownPrompt.value = true
+    }
   }
+}
+
+function openAuthModal() {
+  showSignupPrompt.value = false
+  showAuthModal.value = true
 }
 
 // Remove a recipe from the meal plan
@@ -558,6 +576,17 @@ useSeoMeta({
             </div>
           </template>
         </UCard>
+      </UModal>
+
+      <!-- Signup Prompt Modal -->
+      <SignupPromptModal 
+        v-model="showSignupPrompt"
+        @signup="openAuthModal" 
+      />
+
+      <!-- Auth Modal -->
+      <UModal v-model="showAuthModal">
+        <LoginForm @close="showAuthModal = false" />
       </UModal>
     </main>
   </UContainer>
