@@ -9,7 +9,7 @@ export default <Config>{
         extend: {
             fontFamily: {
                 sans: ['Komika', 'sans-serif'],
-                serif: ['Merriweather', 'serif'],
+                serif: ['"Merriweather"', 'serif'],
             },
         }
     }
