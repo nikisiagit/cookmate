@@ -218,7 +218,7 @@ function exitCookMode() {
             v-if="showIngredients"
             class="mt-2 p-4 bg-gray-50 dark:bg-neutral-800 rounded-lg"
           >
-            <ul class="space-y-2">
+            <ul class="space-y-2 font-serif">
               <li
                 v-for="ingredient in recipe.ingredients"
                 :key="ingredient.id"
@@ -321,7 +321,7 @@ function exitCookMode() {
         <!-- Current Step -->
         <div class="mb-8">
           <div class="bg-white dark:bg-neutral-800 border-2 border-primary-500 rounded-xl p-6 min-h-[200px]">
-            <p class="text-2xl leading-relaxed text-gray-900 dark:text-white">
+            <p class="text-2xl leading-relaxed text-gray-900 dark:text-white font-serif">
               {{ currentStep?.description }}
             </p>
           </div>

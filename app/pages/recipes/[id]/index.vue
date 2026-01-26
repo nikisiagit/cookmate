@@ -447,6 +447,7 @@ function convertToRecipeFraction(value: number): string {
                   <ul
                     v-for="ingredient in displayedIngredients"
                     :key="ingredient.id"
+                    class="font-serif"
                   >
                     <li class="text-lg lg:text-xl mb-1 lg:mb-2 flex  items-center">
                       <!-- <UCheckbox :id="ingredient.id" class="mr-2" /> -->
@@ -463,14 +464,14 @@ function convertToRecipeFraction(value: number): string {
                 <h2 class="text-2xl mb-3 font-bold text-primary">
                   Steps
                 </h2>
-                <ul class="flex flex-col text-lg gap-4">
+                <ul class="flex flex-col text-lg gap-4 font-serif">
                   <li
                     v-for="(step, index) in recipe.steps"
                     :key="step.id"
                     class="flex gap-2"
                   >
                     <span
-                      class="flex items-center justify-center bg-neutral-300 dark:bg-gray-600 mt-1 w-5 h-5 rounded-full text-sm"
+                      class="flex items-center justify-center bg-neutral-300 dark:bg-gray-600 mt-1 w-5 h-5 rounded-full text-sm font-sans"
                     >
                       {{ index + 1 }}
                     </span>
