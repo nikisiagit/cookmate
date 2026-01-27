@@ -95,7 +95,7 @@ function getCardStyle(index: number) {
     opacity: 0,
     filter: 'blur(4px)',
     pointerEvents: 'none' as const,
-    width: '100%',
+    width: '85%',
     maxWidth: '400px', // Card width
   }
 

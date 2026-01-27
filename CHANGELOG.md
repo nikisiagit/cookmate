@@ -21,3 +21,4 @@ All notable changes to this project will be documented in this file.
 - **Typography**: Added "Instrument Serif" font for paragraph text to improve readability.
 - **Logo**: Refreshed CookMate logo with a cleaner design.
 - **Accessibility**: Switched secondary font to "Merriweather" for better legibility and improved text contrast.
+- **Carousel**: Fixed carousel images being cut off on mobile by adjusting card width and scaling.
