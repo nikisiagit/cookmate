@@ -1,24 +1,58 @@
 <script setup lang="ts">
-import { useStorage } from '@vueuse/core'
 import type { Recipe } from '~~/types/recipes'
 
-const colorMode = useColorMode()
-const isDark = computed(() => colorMode.value === 'dark')
-
-const onToggleColorMode = () => {
-  colorMode.value === 'light' ? colorMode.preference = 'dark' : colorMode.preference = 'light'
+// Store recipes with their custom serving sizes
+interface MealPlanItem {
+  recipe: Recipe
+  customServings: number
 }
 
-const disconnect = ref(false)
-const { loggedIn, clear } = useUserSession()
+// Initialize meal plan list (client-side only)
+const mealPlanList = ref<MealPlanItem[]>([])
 
-async function clearSession() {
-  disconnect.value = true
+// Animation for pot icon on first load
+const isAnimating = ref(false)
 
-  await clear().finally(() => disconnect.value = false)
-}
+onMounted(() => {
+  // Load from localStorage on client side only
+  if (process.client) {
+    const stored = localStorage.getItem('meal-plan-list')
+    if (stored) {
+      try {
+        mealPlanList.value = JSON.parse(stored)
+      } catch (e) {
+        console.error('Failed to parse meal plan list:', e)
+      }
+    }
 
-const mealPlanList = useStorage<Recipe[]>('meal-plan-list', [])
+    // Migrate old format to new format (one-time migration)
+    if (mealPlanList.value.length > 0) {
+      const firstItem = mealPlanList.value[0]
+      if (firstItem && !('recipe' in firstItem) && 'id' in firstItem) {
+        const oldData = mealPlanList.value as unknown as Recipe[]
+        mealPlanList.value = oldData.map((recipe: Recipe) => ({
+          recipe,
+          customServings: recipe.servings || 2
+        }))
+      }
+    }
+  }
+
+  // Trigger animation on mount
+  isAnimating.value = true
+
+  // Stop animation after 2 seconds
+  setTimeout(() => {
+    isAnimating.value = false
+  }, 2000)
+})
+
+// Watch for changes and save to localStorage
+watch(mealPlanList, (newValue) => {
+  if (process.client) {
+    localStorage.setItem('meal-plan-list', JSON.stringify(newValue))
+  }
+}, { deep: true })
 </script>
 
 <template>
@@ -36,48 +70,24 @@ const mealPlanList = useStorage<Recipe[]>('meal-plan-list', [])
         <div class="lg:flex-1 flex items-center gap-1.5 min-w-0">
           <div class="font-bold text-xl min-w-0">
             <NuxtLink
-              class="flex items-center "
+              class="flex items-center gap-2"
               to="/"
             >
-              <NuxtImg
-                width="30"
-                src="/logo.png"
+              <img
+                src="/cookmate-logo.png"
+                alt="CookMate Logo"
+                class="h-10 w-auto dark:invert-0 invert"
+                :class="{ 'cooking-animation': isAnimating }"
               />
-              <span class="ml-2 truncate">
-                Cookmate
+              <span class="truncate">
+                cookmate
               </span>
             </NuxtLink>
           </div>
         </div>
 
         <div class="flex items-center justify-end lg:flex-1 gap-1.5">
-          <ClientOnly>
-            <UButton
-              :icon="isDark ? 'i-heroicons-moon-20-solid' : 'i-heroicons-sun-20-solid'"
-              color="gray"
-              variant="ghost"
-              aria-label="Theme"
-              @click="onToggleColorMode"
-            />
-
-            <UButton
-              icon="streamline:food-kitchenware-chef-toque-hat-cook-gear-chef-cooking-nutrition-tools-clothes-hat-clothing-food"
-              color="primary"
-              variant="ghost"
-              aria-label="Add Recipe"
-              class="ml-2"
-              to="/recipes/new"
-            />
-            <UButton
-              v-if="loggedIn"
-              :loading="disconnect"
-              icon="i-heroicons-power-20-solid"
-              class="ml-2"
-              color="red"
-              variant="ghost"
-              @click="clearSession"
-            />
-          </ClientOnly>
+          <ProfileDropdown />
         </div>
       </div>
     </header>
@@ -87,43 +97,27 @@ const mealPlanList = useStorage<Recipe[]>('meal-plan-list', [])
         <NuxtPage />
       </NuxtLayout>
     </main>
-
-    <ClientOnly>
-      <div
-        class="bg-white dark:bg-neutral-900 fixed bottom-0 left-0 z-10 w-full h-12 border-t border-gray-200 dark:border-neutral-700"
-      >
-        <div class="grid h-full max-w-lg grid-cols-2 mx-auto">
-          <UButton
-            icon="heroicons-outline:home"
-            color="primary"
-            variant="ghost"
-            aria-label="Home"
-            class="inline-flex flex-col items-center justify-center"
-            to="/"
-          />
-
-          <UButton
-            color="primary"
-            variant="ghost"
-            aria-label="Meal Planner"
-            class="inline-flex flex-col items-center justify-center"
-            to="/meal-planner"
-          >
-            <span class="relative inline-block mt-1">
-              <UIcon
-                name="humbleicons:calendar"
-                size="20"
-              />
-              <div
-                v-if="mealPlanList.length"
-                class="absolute inline-flex items-center justify-center w-5 h-5 text-xs font-normal text-white bg-red-500 border-2 border-white rounded-full -top-2 -end-3 dark:border-gray-900"
-              >
-                {{ mealPlanList.length }}
-              </div>
-            </span>
-          </UButton>
-        </div>
-      </div>
-    </ClientOnly>
   </div>
 </template>
+
+<style scoped>
+.cooking-animation {
+  animation: cooking 0.5s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+@keyframes cooking {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-3px) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-3px) rotate(2deg);
+  }
+}
+</style>

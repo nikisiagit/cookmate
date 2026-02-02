@@ -1,5 +1,18 @@
-# Cloudflare Pages Configuration
+# Cloudflare Pages Configuration for CookMate
 name = "cookmate"
 pages_build_output_dir = "dist"
-compatibility_date = "2024-01-01"
+
+# Compatibility settings
+compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
+
+# D1 Database binding (applies to all environments)
+[[d1_databases]]
+binding = "DB"
+database_name = "cookmate-db"
+database_id = "e33f9c74-fb35-4fbe-9d26-5bb5f48d3f52"
+
+# R2 Blob Storage binding (applies to all environments)
+[[r2_buckets]]
+binding = "BLOB"
+bucket_name = "cookmate-storage"

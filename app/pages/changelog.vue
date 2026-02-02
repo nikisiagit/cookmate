@@ -6,6 +6,11 @@ useSeoMeta({
 
 const changes = [
   {
+    date: '2026-01-25',
+    title: 'Passkey Authentication',
+    description: 'Implemented WebAuthn passkey authentication using @simplewebauthn. Users can now register and sign in using Face ID, Touch ID, or Windows Hello. Removed Google and Apple OAuth options in favor of the more secure and privacy-focused passkey approach.',
+  },
+  {
     date: '2026-01-24',
     title: 'Carousel Improvements',
     description: 'Updated the homepage carousel to display separate recipe cards that move smoothly from left to right.',

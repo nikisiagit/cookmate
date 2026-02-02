@@ -1,12 +1,186 @@
 <script setup lang="ts">
-import { useStorage } from '@vueuse/core'
 import type { Recipe } from '~~/types/recipes'
+import { categorizeIngredient, type IngredientCategory } from '~/utils/ingredientCategories'
 
 const dummyRecipes = recipesDummyData()
+const carouselRecipes = ref<Recipe[]>([])
+const isLoadingCarousel = ref(false)
+const currentCarouselIndex = ref(0)
+let carouselInterval: NodeJS.Timeout | null = null
 
 const mealAmount = ref(1)
+const servingSize = ref(2)
 const recipes = ref<Recipe[]>([])
-const mealPlanList = useStorage<Recipe[]>('meal-plan-list', [])
+
+// Store recipes with their custom serving sizes
+interface MealPlanItem {
+  recipe: Recipe
+  customServings: number
+}
+
+// Initialize meal plan list (client-side only)
+const mealPlanList = ref<MealPlanItem[]>([])
+
+// Fetch recipes for carousel
+async function fetchCarouselRecipes() {
+  isLoadingCarousel.value = true
+  try {
+    const data = await $fetch<Recipe[]>('/api/recipes/random', {
+      query: { limit: 12 }
+    })
+    if (data && data.length > 0) {
+      carouselRecipes.value = data
+      startCarousel() // Start rotation once data is loaded
+    } else {
+      carouselRecipes.value = dummyRecipes
+      startCarousel()
+    }
+  } catch (error) {
+    console.error('Error fetching carousel recipes:', error)
+    carouselRecipes.value = dummyRecipes
+    startCarousel()
+  } finally {
+    isLoadingCarousel.value = false
+  }
+}
+
+// Carousel Logic
+function startCarousel() {
+  if (carouselInterval) clearInterval(carouselInterval)
+  carouselInterval = setInterval(() => {
+    nextSlide()
+  }, 3000)
+}
+
+function stopCarousel() {
+  if (carouselInterval) {
+    clearInterval(carouselInterval)
+    carouselInterval = null
+  }
+}
+
+function nextSlide() {
+  currentCarouselIndex.value = (currentCarouselIndex.value + 1) % carouselRecipes.value.length
+}
+
+function prevSlide() {
+  currentCarouselIndex.value = (currentCarouselIndex.value - 1 + carouselRecipes.value.length) % carouselRecipes.value.length
+}
+
+function setSlide(index: number) {
+  currentCarouselIndex.value = index
+  startCarousel() // Reset timer on manual interaction
+}
+
+// Calculate style for each card based on its position relative to current index
+function getCardStyle(index: number) {
+  const total = carouselRecipes.value.length
+  if (total === 0) return {}
+
+  const current = currentCarouselIndex.value
+  
+  // Calculate circular distance
+  let diff = (index - current) % total
+  if (diff < -total / 2) diff += total
+  if (diff > total / 2) diff -= total
+
+  // Base styles for transition
+  const baseStyle = {
+    transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+    position: 'absolute' as const,
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    zIndex: 0,
+    opacity: 0,
+    filter: 'blur(4px)',
+    pointerEvents: 'none' as const,
+    width: '85%',
+    maxWidth: '400px', // Card width
+  }
+
+  // Active Center Item
+  if (diff === 0) {
+    return {
+      ...baseStyle,
+      zIndex: 30,
+      opacity: 1,
+      filter: 'blur(0px)',
+      transform: 'translate(-50%, -50%) scale(1.1)',
+      pointerEvents: 'auto' as const,
+    }
+  } 
+  // Prev Item (Left)
+  else if (diff === -1 || (current === 0 && index === total - 1)) {
+    return {
+      ...baseStyle,
+      zIndex: 20,
+      opacity: 0.6,
+      filter: 'blur(3px)',
+      transform: 'translate(-120%, -50%) scale(0.85)',
+      cursor: 'pointer',
+      pointerEvents: 'auto' as const,
+    }
+  } 
+  // Next Item (Right)
+  else if (diff === 1 || (current === total - 1 && index === 0)) {
+    return {
+      ...baseStyle,
+      zIndex: 20,
+      opacity: 0.6,
+      filter: 'blur(3px)',
+      transform: 'translate(20%, -50%) scale(0.85)',
+      cursor: 'pointer',
+      pointerEvents: 'auto' as const,
+    }
+  }
+  
+  // Hidden Items (store them behind center to prevent flying)
+  return baseStyle
+}
+
+
+onMounted(() => {
+  // Load from localStorage on client side only
+  if (process.client) {
+    const stored = localStorage.getItem('meal-plan-list')
+    if (stored) {
+      try {
+        mealPlanList.value = JSON.parse(stored)
+      } catch (e) {
+        console.error('Failed to parse meal plan list:', e)
+      }
+    }
+
+    // Migrate old format to new format (one-time migration)
+    if (mealPlanList.value.length > 0) {
+      const firstItem = mealPlanList.value[0]
+      if (firstItem && !('recipe' in firstItem) && 'id' in firstItem) {
+        const oldData = mealPlanList.value as unknown as Recipe[]
+        mealPlanList.value = oldData.map(recipe => ({
+          recipe,
+          customServings: recipe.servings || 2
+        }))
+      }
+    }
+  }
+
+  // Fetch recipes for carousel
+  fetchCarouselRecipes()
+})
+
+// Watch for changes and save to localStorage
+watch(mealPlanList, (newValue) => {
+  if (process.client) {
+    localStorage.setItem('meal-plan-list', JSON.stringify(newValue))
+  }
+}, { deep: true })
+
+// Cleanup on unmount
+onUnmounted(() => {
+  stopCarousel()
+})
+
 // Track saved recipe IDs
 const savedRecipes = ref<number[]>([])
 // Excluded recipe IDs
@@ -15,10 +189,94 @@ const excludedIds = ref<number[]>([])
 const isLoadingRecipes = ref(false)
 // loading state for each recipe
 const loadingStates = ref<boolean[]>([])
+const showShoppingList = ref(false)
 
 const setMealAmount = (value: number) => {
   mealAmount.value = value
 }
+
+const setServingSize = (value: number) => {
+  servingSize.value = value
+}
+
+// Scale ingredient quantities based on serving size
+function scaleRecipeIngredients(recipe: Recipe, targetServings: number): Recipe {
+  if (!recipe.servings || recipe.servings === 0) return recipe
+  if (!recipe.ingredients || !Array.isArray(recipe.ingredients)) return recipe
+
+  const scale = targetServings / recipe.servings
+
+  return {
+    ...recipe,
+    servings: targetServings,
+    ingredients: recipe.ingredients.map(ingredient => {
+      const scaledQty = Number((ingredient.qty * scale).toFixed(2))
+      return {
+        ...ingredient,
+        qty: scaledQty
+      }
+    })
+  }
+}
+
+// Generate shopping list from meal plan
+const shoppingList = computed(() => {
+  if (!mealPlanList.value.length) return []
+
+  const ingredientMap = new Map<string, { name: string, qty: number, unit: string }>()
+
+  // Use the current randomiser serving size for ALL recipes
+  mealPlanList.value.forEach((mealPlanItem) => {
+    const scaledRecipe = scaleRecipeIngredients(mealPlanItem.recipe, servingSize.value)
+
+    if (!scaledRecipe.ingredients || !Array.isArray(scaledRecipe.ingredients)) return
+
+    scaledRecipe.ingredients.forEach(ingredient => {
+      const key = `${ingredient.name.toLowerCase()}-${ingredient.unit}`
+      if (ingredientMap.has(key)) {
+        const existing = ingredientMap.get(key)!
+        existing.qty += ingredient.qty
+      } else {
+        ingredientMap.set(key, {
+          name: ingredient.name,
+          qty: ingredient.qty,
+          unit: ingredient.unit
+        })
+      }
+    })
+  })
+
+  return Array.from(ingredientMap.values()).map(item => ({
+    ...item,
+    qty: Number(item.qty.toFixed(2))
+  }))
+})
+
+// Group ingredients by category
+const categorizedShoppingList = computed(() => {
+  const list = shoppingList.value
+  const categories: Record<IngredientCategory, typeof list> = {
+    'Veg': [],
+    'Fruit': [],
+    'Dairy': [],
+    'Meat/Fish': [],
+    'Bakery': [],
+    'Pantry': [],
+    'Household': [],
+    'Other': []
+  }
+
+  list.forEach(item => {
+    const category = categorizeIngredient(item.name)
+    if (categories[category]) {
+      categories[category].push(item)
+    } else {
+      categories['Other'].push(item)
+    }
+  })
+
+  return categories
+})
 
 async function fetchRandomRecipes(limit: number, excludedIds: number[] = []): Promise<Recipe[]> {
   const recipes = await $fetch<Recipe[]>('/api/recipes/random', {
@@ -56,16 +314,37 @@ async function generateRandomRecipes() {
 }
 
 // Add a recipe to the meal plan and mark it as saved
+const { loggedIn } = useUserSession()
+const showSignupPrompt = ref(false)
+const showAuthModal = ref(false)
+const hasShownPrompt = ref(false) // Only show once per session
+
 function addToMealPlan(recipe: Recipe) {
   if (!savedRecipes.value.includes(recipe.id)) {
-    mealPlanList.value.push(recipe)
+    const isFirstItem = mealPlanList.value.length === 0
+    
+    mealPlanList.value.push({
+      recipe,
+      customServings: servingSize.value
+    })
     savedRecipes.value.push(recipe.id)
+
+    // Show signup prompt if not logged in, it's the first item (or reasonably early), and haven't shown yet
+    if (!loggedIn.value && isFirstItem && !hasShownPrompt.value) {
+      showSignupPrompt.value = true
+      hasShownPrompt.value = true
+    }
   }
+}
+
+function openAuthModal() {
+  showSignupPrompt.value = false
+  showAuthModal.value = true
 }
 
 // Remove a recipe from the meal plan
 function removeFromMealPlan(recipeId: number) {
-  mealPlanList.value = mealPlanList.value.filter(recipe => recipe.id !== recipeId)
+  mealPlanList.value = mealPlanList.value.filter(item => item.recipe.id !== recipeId)
   savedRecipes.value = savedRecipes.value.filter(id => id !== recipeId)
 }
 
@@ -106,6 +385,30 @@ async function handleDiscardRecipe(index: number, id: number) {
   }
 }
 
+// Copy shopping list to clipboard
+// Copy shopping list to clipboard
+async function copyShoppingList() {
+  let text = 'CookMate Shopping List\n'
+  
+  for (const [category, items] of Object.entries(categorizedShoppingList.value)) {
+    if (items.length === 0) continue
+    text += `\n[${category}]\n`
+    text += items.map(item => `- ${item.name}: ${item.qty} ${item.unit}`).join('\n')
+  }
+
+  try {
+    await navigator.clipboard.writeText(text)
+    const toast = useToast()
+    toast.add({
+      title: 'Copied!',
+      description: 'Categorized shopping list copied to clipboard',
+      color: 'green'
+    })
+  } catch (error) {
+    console.error('Failed to copy:', error)
+  }
+}
+
 useSeoMeta({
   title: 'CookMate: Your ally in the Kitchen',
   ogTitle: 'CookMate: Your ally in the Kitchen',
@@ -119,7 +422,26 @@ useSeoMeta({
 
 <template>
   <UContainer>
-    <main class="pb-[90px]">
+    <main>
+      <!-- Navigation Tabs -->
+      <div class="flex justify-center gap-2 mb-6 mt-4">
+        <UButton
+          size="lg"
+          color="primary"
+          variant="solid"
+          :to="'/'"
+        >
+          Randomiser
+        </UButton>
+        <UButton
+          size="lg"
+          color="gray"
+          variant="ghost"
+          :to="'/recipes'"
+        >
+          All Recipes
+        </UButton>
+      </div>
       <template v-if="isLoadingRecipes">
         <h1 class="text-2xl font-semibold text-center my-8">
           Generating random recipes...
@@ -129,9 +451,9 @@ useSeoMeta({
         </div>
       </template>
 
-      <!-- this could be a component randomiser-start.vue --->
+      <!-- Randomiser Start & Carousel -->
       <template v-else-if="!recipes.length && !isLoadingRecipes">
-        <h1 class="text-center text-2xl font-semibold mt-8">
+        <h1 class="text-center text-2xl font-semibold mt-8 mb-6">
           Let fortune decide your meals this week
         </h1>
         <h2 class="text-center text-lg font-semibold mt-8">
@@ -141,29 +463,36 @@ useSeoMeta({
           class="mb-8"
           @update:meal-amount="setMealAmount"
         />
-        <UCarousel
-          v-if="dummyRecipes.length"
-          :items="dummyRecipes"
-          :ui="{ item: 'basis-full sm:basis-1/2 md:basis-1/3' }"
-          class="rounded-lg overflow-hidden mx-auto max-w-5xl"
-          arrows
-          indicators
-          :autoplay="{ delay: 3000 }"
-        >
-          <template #default="{ item }">
-            <div class="p-2 w-full">
-               <RecipeCard
-                :recipe="item"
+        
+        <!-- 3D Carousel Container -->
+        <div class="relative h-[450px] w-full max-w-6xl mx-auto flex items-center justify-center my-8 overflow-hidden touch-pan-y" @mouseenter="stopCarousel" @mouseleave="startCarousel">
+          
+          <template v-if="carouselRecipes.length">
+            <div 
+              v-for="(recipe, index) in carouselRecipes" 
+              :key="recipe.id"
+              :style="getCardStyle(index)"
+              class="carousel-item"
+              @click="setSlide(index)"
+            >
+              <RecipeCard
+                :recipe="recipe"
                 :include-link="false"
+                class="w-full h-full shadow-2xl"
               />
             </div>
           </template>
-        </UCarousel>
+
+          <!-- Loading State for Carousel -->
+          <div v-else class="text-center text-gray-500">
+            Loading inspiring recipes...
+          </div>
+        </div>
 
         <div class="flex justify-center">
           <UButton
             :disabled="mealAmount < 1 || mealAmount > 7"
-            class="text-center w-80 rounded-lg p-4 lg:w-1/4 justify-center generate-btn mt-8 rounded-lg shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl hover:scale-105 transition-all transform duration-200 ease-in-out mx-auto"
+            class="text-center w-80 rounded-lg p-4 lg:w-1/4 justify-center generate-btn rounded-lg shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl hover:scale-105 transition-all transform duration-200 ease-in-out mx-auto"
             size="lg"
             @click="generateRandomRecipes"
           >
@@ -172,6 +501,7 @@ useSeoMeta({
         </div>
       </template>
 
+      <!-- Randomiser Results -->
       <template v-else>
         <!-- this could be a component randomiser-results.vue --->
         <h1 class="text-2xl font-semibold text-center my-8">
@@ -194,7 +524,98 @@ useSeoMeta({
             />
           </template>
         </div>
+
+        <!-- Meal Plan Button -->
+        <div v-if="mealPlanList.length > 0" class="flex justify-center mt-8">
+          <UButton
+            icon="heroicons:calendar-20-solid"
+            size="lg"
+            color="primary"
+            to="/meal-planner"
+          >
+            Take me to my Meal Plan
+          </UButton>
+        </div>
       </template>
+
+      <!-- Shopping List Modal -->
+      <UModal v-model="showShoppingList" :ui="{ width: 'max-w-2xl' }">
+        <UCard>
+          <template #header>
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-xl font-bold">Shopping List</h3>
+                <div class="text-sm text-gray-500">
+                  {{ mealPlanList.length }} {{ mealPlanList.length === 1 ? 'recipe' : 'recipes' }} in meal plan
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-2xl font-bold text-primary">{{ servingSize }}</div>
+                <div class="text-xs text-gray-500">{{ servingSize === 1 ? 'serving' : 'servings' }}</div>
+              </div>
+            </div>
+          </template>
+
+          <div class="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
+            <div v-if="shoppingList.length === 0" class="text-center py-8 text-gray-500">
+              Add recipes to your meal plan to generate a shopping list
+            </div>
+            <div v-else>
+              <!-- Categorized Ingredients list -->
+              <div 
+                v-for="(items, category) in categorizedShoppingList" 
+                :key="category"
+              >
+                <div v-if="items.length > 0" class="mb-6">
+                  <h4 class="text-sm font-bold text-primary mb-2 uppercase tracking-wide flex items-center gap-2">
+                    {{ category }}
+                    <span class="text-xs font-normal text-gray-500 normal-case bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
+                      {{ items.length }}
+                    </span>
+                  </h4>
+                  <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg px-4 py-2">
+                    <div
+                      v-for="(item, index) in items"
+                      :key="index"
+                      class="py-2 flex items-center justify-between border-b last:border-0 border-gray-100 dark:border-gray-700/50"
+                    >
+                      <span class="text-gray-900 dark:text-gray-200 font-medium">{{ item.name }}</span>
+                      <span class="text-gray-600 dark:text-gray-400 text-sm bg-white dark:bg-gray-800 px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700 shadow-sm">
+                        {{ item.qty }} {{ item.unit }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <template #footer>
+            <div class="flex justify-end gap-2">
+              <UButton color="gray" variant="ghost" @click="showShoppingList = false">
+                Close
+              </UButton>
+              <UButton
+                icon="heroicons:clipboard-document-16-solid"
+                @click="copyShoppingList"
+              >
+                Copy to Clipboard
+              </UButton>
+            </div>
+          </template>
+        </UCard>
+      </UModal>
+
+      <!-- Signup Prompt Modal -->
+      <SignupPromptModal 
+        v-model="showSignupPrompt"
+        @signup="openAuthModal" 
+      />
+
+      <!-- Auth Modal -->
+      <UModal v-model="showAuthModal">
+        <LoginForm @close="showAuthModal = false" />
+      </UModal>
     </main>
   </UContainer>
 </template>
@@ -208,5 +629,13 @@ useSeoMeta({
 .generate-btn:hover {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   transform: scale(1.05);
+}
+
+/* 3D Carousel Item Styles */
+.carousel-item {
+  will-change: transform, opacity, filter;
+  /* Ensure smooth rendering */
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 </style>

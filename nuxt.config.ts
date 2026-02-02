@@ -4,6 +4,17 @@ export default defineNuxtConfig({
   // https://nuxt.com/docs/getting-started/upgrade#testing-nuxt-4
   future: { compatibilityVersion: 4 },
 
+  css: ['~/assets/css/main.css'],
+
+  app: {
+    head: {
+      link: [
+        { rel: 'stylesheet', href: 'https://fonts.cdnfonts.com/css/komika' },
+        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap' }
+      ]
+    }
+  },
+
   // https://nuxt.com/modules
   modules: [
     '@nuxthub/core',
@@ -26,12 +37,10 @@ export default defineNuxtConfig({
     blob: true,
   },
   nitro: {
-    preset: 'cloudflare_module',
+    preset: 'cloudflare-pages',
     cloudflare: {
-      wrangler: {
-        compatibility_date: '2024-11-01',
-        compatibility_flags: ['nodejs_compat'],
-      },
+      compatibilityDate: '2024-11-01',
+      compatibilityFlags: ['nodejs_compat'],
     },
   },
   colorMode: {
@@ -39,6 +48,13 @@ export default defineNuxtConfig({
     fallback: 'light', // fallback value if not system preference found
     storage: 'localStorage', // or 'sessionStorage' or 'cookie'
     storageKey: 'nuxt-color-mode',
+  },
+  runtimeConfig: {
+    public: {
+      // WebAuthn configuration - set via environment variables in production
+      webauthnRpId: process.env.NUXT_PUBLIC_WEBAUTHN_RP_ID || 'localhost',
+      webauthnOrigin: process.env.NUXT_PUBLIC_WEBAUTHN_ORIGIN || 'http://localhost:3000',
+    },
   },
   pinia: {
     storesDirs: ['./stores/**'],

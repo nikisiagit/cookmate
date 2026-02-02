@@ -23,12 +23,91 @@ const filteredRecipes = computed<Recipe[]>(() => {
   return (recipes.value && recipes.value.filter((recipe) => {
     return recipe.name.toLowerCase().includes(search.value.toLowerCase())
   })) || []
+
 })
+
+// Meal Plan Logic
+interface MealPlanItem {
+  recipe: Recipe
+  customServings: number
+}
+
+const { loggedIn } = useUserSession()
+const mealPlanList = ref<MealPlanItem[]>([])
+const savedRecipes = computed(() => mealPlanList.value.map(item => item.recipe.id))
+const showSignupPrompt = ref(false)
+const showAuthModal = ref(false)
+const hasShownPrompt = ref(false)
+
+onMounted(() => {
+  if (process.client) {
+    const stored = localStorage.getItem('meal-plan-list')
+    if (stored) {
+      try {
+        mealPlanList.value = JSON.parse(stored)
+      } catch (e) {
+        console.error(e)
+      }
+    }
+  }
+})
+
+function saveMealPlan() {
+  if (process.client) {
+    localStorage.setItem('meal-plan-list', JSON.stringify(mealPlanList.value))
+  }
+}
+
+function addToMealPlan(recipe: Recipe) {
+  if (!savedRecipes.value.includes(recipe.id)) {
+    const isFirstItem = mealPlanList.value.length === 0
+     
+    mealPlanList.value.push({
+      recipe,
+      customServings: 2 // Default to 2
+    })
+    saveMealPlan()
+
+    if (!loggedIn.value && isFirstItem && !hasShownPrompt.value) {
+      showSignupPrompt.value = true
+      hasShownPrompt.value = true
+    }
+  }
+}
+
+function removeFromMealPlan(recipeId: number) {
+  mealPlanList.value = mealPlanList.value.filter(item => item.recipe.id !== recipeId)
+  saveMealPlan()
+}
+
+function openAuthModal() {
+  showSignupPrompt.value = false
+  showAuthModal.value = true
+}
 </script>
 
 <template>
   <UContainer>
-    <main class="pb-[90px]">
+    <main>
+      <!-- Navigation Tabs -->
+      <div class="flex justify-center gap-2 mb-6 mt-4">
+        <UButton
+          size="lg"
+          color="gray"
+          variant="ghost"
+          :to="'/'"
+        >
+          Randomiser
+        </UButton>
+        <UButton
+          size="lg"
+          color="primary"
+          variant="solid"
+          :to="'/recipes'"
+        >
+          All Recipes
+        </UButton>
+      </div>
       <template v-if="status === 'pending'">
         <h1 class="text-2xl font-semibold text-center my-8">
           Loading...
@@ -63,6 +142,10 @@ const filteredRecipes = computed<Recipe[]>(() => {
               :key="recipe.id"
               include-link
               :recipe="recipe"
+              :is-saved="savedRecipes.includes(recipe.id)"
+              :show-add-button="true"
+              @add-to-meal-plan="addToMealPlan"
+              @remove-from-meal-plan="removeFromMealPlan"
             />
           </div>
           <!-- end ListRecipes.vue -->
@@ -70,4 +153,15 @@ const filteredRecipes = computed<Recipe[]>(() => {
       </div>
     </main>
   </UContainer>
+
+  <!-- Signup Prompt Modal -->
+  <SignupPromptModal 
+    v-model="showSignupPrompt"
+    @signup="openAuthModal" 
+  />
+
+  <!-- Auth Modal -->
+  <UModal v-model="showAuthModal">
+    <LoginForm @close="showAuthModal = false" />
+  </UModal>
 </template>

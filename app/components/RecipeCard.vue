@@ -6,6 +6,7 @@ const props = defineProps<{
   index?: number
   isSaved?: boolean
   includeLink?: boolean
+  showAddButton?: boolean
 }>()
 
 const emit = defineEmits(['addToMealPlan', 'removeFromMealPlan', 'discard'])
@@ -31,7 +32,7 @@ const ui = {
 
 <template>
   <UCard
-    class="relative h-full flex flex-col justify-between"
+    class="relative h-full flex flex-col justify-between rounded-xl overflow-hidden"
     :ui="ui"
   >
     <template #header>
@@ -49,7 +50,7 @@ const ui = {
         <NuxtImg
           height="300"
           width="400"
-          class="h-44 w-full object-cover"
+          class="h-44 w-full object-cover rounded-t-xl"
           :src="recipe.imageUrl"
           :alt="recipe.name"
         />
@@ -84,14 +85,14 @@ const ui = {
 
       <span
         v-if="index !== undefined"
-        class="dark:text-neutral-200 line-clamp-2 text-sm"
+        class="line-clamp-3 text-base font-serif leading-relaxed text-gray-700 dark:text-gray-300"
       >
         {{ recipe.description }}
       </span>
     </NuxtLinkConditional>
 
     <template
-      v-if="index !== undefined"
+      v-if="index !== undefined || showAddButton"
       #footer
     >
       <!-- <div class="w-full flex justify-between p-4"> -->
@@ -120,7 +121,7 @@ const ui = {
       </UButton>
 
       <UButton
-        v-else
+        v-else-if="index !== undefined"
         variant="ghost"
         icon="i-heroicons-trash"
         size="lg"
